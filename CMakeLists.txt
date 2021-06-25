@@ -12,8 +12,38 @@ add_subdirectory(rpc-runtime)
 message(STATUS "CUDA compiler: ${CUDACXX}")
 message(STATUS "CUDA compiler: ${CMAKE_CUDA_COMPILER}")
 set(CUDA_PATH /usr/local/cuda)
-set(RPC_DEVICE_ARCH sm_61)
-set(RPC_COMPUTE_ARCH compute_61)
+set(RPC_DEVICE_ARCH sm_52)
+set(RPC_COMPUTE_ARCH compute_52)
+set(OPT -O3)
+
+set(TEST_FILE "${CMAKE_SOURCE_DIR}/test-kernels/matrix-transpose/matrix-transpose.cu")
+execute_process(
+  COMMAND clang++ ${TEST_FILE} -o mt --cuda-gpu-arch=sm_52 -L/usr/local/cuda/lib64 -lcudart -ldl -lrt -v
+  ERROR_VARIABLE test_compile_output
+  WORKING_DIRECTORY /tmp
+)
+
+string(REGEX MATCH "[^\n]* -cc1 -triple x86_64-unknown-linux-gnu[^\n]*" raw_cc1_call ${test_compile_output})
+#-fdebug-compilation-dir /tmp
+#-fcuda-include-gpubinary /tmp/matrix-transpose-627796.fatbin
+#-faddrsig
+#-o /tmp/matrix-transpose-bf037f.o
+#-x cuda /data/nico/code/llvm-cuda-coarsening/test-kernels/matrix-transpose/matrix-transpose.cu
+
+#message(STATUS "RAW_CC1_CALL: ${raw_cc1_call}")
+# string(REGEX REPLACE "-fcuda-include-gpubinary [^((?<!\\)\ )]*.fatbin(\")?" "-fcuda-include-gpubinary FATBIN_PLACEHOLDER" raw_cc1_call_1 ${raw_cc1_call})
+# string(REGEX REPLACE "-fdebug-compilation-dir /tmp" "-fdebug-compilation-dir WORKDIR_PLACEHOLDER" raw_cc1_call_2 ${raw_cc1_call_1})
+# string(REGEX REPLACE "-o /tmp/[^((?<!\\)\ )]*.o" "-o OUTFILE_PLACEHOLDER" raw_cc1_call_3 ${raw_cc1_call_2})
+# string(REGEX REPLACE "-x cuda ${TEST_FILE}" "-x cuda CUDA_FILE_PLACEHOLDER" cc1_call_template ${raw_cc1_call_3})
+string(REGEX REPLACE "-fcuda-include-gpubinary [^((?<!\\)\ )]*.fatbin(\")?" "" raw_cc1_call_1 ${raw_cc1_call})
+string(REGEX REPLACE "-fdebug-compilation-dir /tmp" "" raw_cc1_call_2 ${raw_cc1_call_1})
+string(REGEX REPLACE "-o /tmp/[^((?<!\\)\ )]*.o" "" raw_cc1_call_3 ${raw_cc1_call_2})
+string(REGEX REPLACE "-main-file-name [^((?<!\\)\ )]*.cu" "" raw_cc1_call_4 ${raw_cc1_call_3})
+string(REGEX REPLACE " -v " " " raw_cc1_call_5 ${raw_cc1_call_4})
+string(REGEX REPLACE "-x cuda ${TEST_FILE}" "" raw_cc1_call_6 ${raw_cc1_call_5})
+string(REGEX REPLACE " -emit-obj " " -emit-llvm " cc1_call_str ${raw_cc1_call_6})
+message(STATUS "CC1_CALL: ${cc1_call_str}")
+separate_arguments(cc1_call UNIX_COMMAND ${cc1_call_str})
 
 
 #add_library(rpc-runtime OBJECT rpc-runtime/dynamic.cpp)
@@ -62,11 +92,14 @@ function(add_coarsening_to_target)
 
   set(target_build_dir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${ADD_COARSENING_TARGET}.dir")
   file(MAKE_DIRECTORY ${target_build_dir})
+  set(link_file_list "")
   
   foreach(src_file ${ADD_COARSENING_SOURCES})
     message(STATUS "${src_file}")
     string(REPLACE "/" "_" target_base_name "${src_file}")
     message(STATUS "${target_base_name}")
+    get_filename_component(src_file_base_name "${src_file}" NAME)
+    message(STATUS "FILE BASE NAME: ${src_file_base_name}")
     
     get_directory_property (inc_dirs INCLUDE_DIRECTORIES)
     #list(TRANSFORM inc_dirs PREPEND "-I")
@@ -82,7 +115,7 @@ function(add_coarsening_to_target)
         "${CMAKE_CURRENT_SOURCE_DIR}/${src_file}"
         "-I$<JOIN:$<TARGET_PROPERTY:${target_base_name}_device.bc,INCLUDE_DIRECTORIES>, -I>"
         -Xclang -disable-O0-optnone
-        --cuda-path="${CUDA_PATH}"
+        #--cuda-path="${CUDA_PATH}"
         --cuda-gpu-arch="${RPC_DEVICE_ARCH}"
         --cuda-device-only
         -o "${target_base_name}_device.bc"
@@ -95,7 +128,7 @@ function(add_coarsening_to_target)
          ${OPT}
          "${CMAKE_CURRENT_SOURCE_DIR}/${src_file}"
         "-I$<JOIN:$<TARGET_PROPERTY:${target_base_name}_host.bc,INCLUDE_DIRECTORIES>, -I>"
-        --cuda-path="${CUDA_PATH}"
+        #--cuda-path="${CUDA_PATH}"
         --cuda-gpu-arch="${RPC_DEVICE_ARCH}"
         --cuda-host-only
         -o "${target_base_name}_host.bc"
@@ -103,7 +136,7 @@ function(add_coarsening_to_target)
         "${target_build_dir}"
     )
     add_custom_target("${target_base_name}_device_coarsened.bc" ALL
-      echo -load "$<TARGET_FILE:LLVMCUDACoarsening>"
+      opt -load "$<TARGET_FILE:LLVMCUDACoarsening>"
         -mem2reg -indvars -structurizecfg -be
         -cuda-coarsening-pass
         -coarsened-kernel all
@@ -117,8 +150,8 @@ function(add_coarsening_to_target)
         LLVMCUDACoarsening
     )
     add_custom_target("${target_base_name}_device_coarsened.ptx" ALL
-      echo llc
-        $OPT
+      llc
+        ${OPT}
         -mcpu=${RPC_DEVICE_ARCH}
         -o "${target_base_name}_device_coarsened.ptx"
         "${target_base_name}_device_coarsened.bc"
@@ -128,9 +161,9 @@ function(add_coarsening_to_target)
         "${target_base_name}_device_coarsened.bc"
     )
     add_custom_target("${target_base_name}_device_coarsened.cubin" ALL
-      echo $CUDA_PATH/bin/ptxas
+      ptxas
         -m64
-        --gpu-name=$RPC_DEVICE_ARCH
+        --gpu-name="${RPC_DEVICE_ARCH}"
         "${target_base_name}_device_coarsened.ptx"
         --output-file "${target_base_name}_device_coarsened.cubin"
       WORKING_DIRECTORY
@@ -139,9 +172,9 @@ function(add_coarsening_to_target)
         "${target_base_name}_device_coarsened.ptx"
     )
     add_custom_target("${target_base_name}_device_coarsened.fatbin" ALL
-      echo $CUDA_PATH/bin/fatbinary
+      fatbinary
         -64
-        --create"${target_base_name}_device_coarsened.fatbin"
+        --create "${target_base_name}_device_coarsened.fatbin"
         "--image=profile=${RPC_DEVICE_ARCH},file=${target_base_name}_device_coarsened.cubin"
         "--image=profile=${RPC_COMPUTE_ARCH},file=${target_base_name}_device_coarsened.ptx"
       WORKING_DIRECTORY
@@ -150,51 +183,76 @@ function(add_coarsening_to_target)
         "${target_base_name}_device_coarsened.ptx"
         "${target_base_name}_device_coarsened.cubin"
     )
-    
-    add_custom_target("${target_base_name}_combined.ll" ALL
-      echo clang
-        -cc1 $OPT -emit-llvm -triple x86_64-unknown-linux-gnu
-        -x cuda
-        -target-sdk-version=$CUDA_VERSION
-        -aux-triple nvptx64-nvidia-cuda -mrelax-all
-        -disable-free -main-file-name $INPUT_FILE
-        -mrelocation-model static -mthread-model posix
-        -mdisable-fp-elim -fmath-errno -masm-verbose
-        -mconstructor-aliases -munwind-tables -fuse-init-array
-        -target-cpu x86-64 -dwarf-column-info
-        -debugger-tuning=gdb
-        -resource-dir $RPC_LLVM_BUILD_DIR/lib/clang/9.0.0
-        -internal-isystem $INCLUDE_DIR -internal-externc-isystem $INCLUDE_DIR
-        -internal-isystem $RPC_LLVM_BUILD_DIR/lib/clang/9.0.0/include/cuda_wrappers
-        -internal-isystem $CUDA_PATH/include
-        -include __clang_cuda_runtime_wrapper.h
-        -internal-isystem /usr/include/c++/8.3.0/
-        -internal-isystem /usr/include/c++/8.3.0/x86_64-pc-linux-gnu
-        -internal-isystem /usr/include/c++/8.3.0/backward
-        -internal-isystem /usr/local/include
-        -internal-isystem $RPC_LLVM_BUILD_DIR/lib/clang/9.0.0/include
-        -internal-externc-isystem /usr/include
-        -internal-isystem /usr/local/include
-        -fdeprecated-macro
-        -fdebug-compilation-dir $BUILD_DIR
-        -ferror-limit 19 -fmessage-length 0 -fobjc-runtime=gcc
-        -fcxx-exceptions -fexceptions -fdiagnostics-show-option
-        -o $BUILD_DIR/rpc_combined.ll $INPUT_FILE
-        -fcuda-include-gpubinary $BUILD_DIR/rpc_device.fatbin
-        -faddrsig
+   
+    message(STATUS
+      "${cc1_call}
+        -fcuda-include-gpubinary ${target_base_name}_device_coarsened.fatbin
+        -fdebug-compilation-dir ${target_build_dir}
+        -o ${target_base_name}_combined.bc
+        -main-file-name ${src_file_base_name}
+        -x cuda ${CMAKE_SOURCE_DIR}/${src_file}"
+    )
+    add_custom_target("${target_base_name}_combined.bc" ALL
+      ${cc1_call}
+        -fcuda-include-gpubinary "${target_base_name}_device_coarsened.fatbin"
+        -fdebug-compilation-dir "${target_build_dir}"
+        -o "${target_base_name}_combined.bc"
+        -main-file-name "${src_file_base_name}"
+        -x cuda "${CMAKE_SOURCE_DIR}/${src_file}" -v
       WORKING_DIRECTORY
          "${target_build_dir}"
       DEPENDS
         "${target_base_name}_device_coarsened.fatbin"
         "${target_base_name}_host.bc"
-      )
+    )
 
-    get_target_property(my_sys_dirs "${target_base_name}_combined.ll" INTERFACE_INCLUDE_DIRECTORIES)
-    foreach(dir ${my_sys_dirs})
-      string(APPEND INCLUDE_SYS_COMPILER_STRING "-I${dir} ")
-    endforeach()
-    message(STATUS "BAR ${my_sys_dirs}")
-  endforeach() 
+    add_custom_target("${target_base_name}_combined_coarsened.bc" ALL
+      opt
+        -load "$<TARGET_FILE:LLVMCUDACoarsening>"
+        -cuda-coarsening-pass
+        -coarsened-kernel all
+        -coarsening-mode dynamic
+        -o "${target_base_name}_combined_coarsened.bc"
+        < "${target_base_name}_combined.bc"
+      WORKING_DIRECTORY
+         "${target_build_dir}"
+      DEPENDS
+        "${target_base_name}_combined.bc"
+        LLVMCUDACoarsening
+    )
+
+    add_custom_target("${target_base_name}_out" ALL
+      llc ${OPT}
+        -filetype=obj
+        "${target_base_name}_combined_coarsened.bc"
+        -o "${target_base_name}_out"
+      WORKING_DIRECTORY
+         "${target_build_dir}"
+      DEPENDS
+        "${target_base_name}_combined_coarsened.bc"
+    )
+
+    list(APPEND link_file_list "${target_base_name}_out")
+
+  endforeach()
+
+  add_custom_target("${ADD_COARSENING_TARGET}" ALL
+    clang
+      -L$CUDA_PATH/lib64
+      -lcudart
+      -ldl
+      -lm
+      -lstdc++
+      "$<TARGET_OBJECTS:rpc-runtime>"
+      ${link_file_list}
+      -o "${CMAKE_CURRENT_BINARY_DIR}/${ADD_COARSENING_TARGET}"
+    WORKING_DIRECTORY
+       "${target_build_dir}"
+    DEPENDS
+      rpc-runtime
+      ${link_file_list}
+  )
+
 endfunction()
 
 add_coarsening_to_target(TARGET my_mt SOURCES test-kernels/matrix-transpose/matrix-transpose.cu)
