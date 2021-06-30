@@ -519,7 +519,7 @@ void CUDACoarseningPass::analyzeKernel(Function& F)
 
     // Perform initial analysis.
     m_benefitAnalysis = &getAnalysis<BenefitAnalysisPass>(F);
-    m_benefitAnalysis->printStatistics();
+    // m_benefitAnalysis->printStatistics();
 
     m_loopInfo = &getAnalysis<LoopInfoWrapperPass>(F).getLoopInfo();
     m_postDomT = &getAnalysis<PostDominatorTreeWrapperPass>(F).getPostDomTree();
