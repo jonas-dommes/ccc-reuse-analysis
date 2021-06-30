@@ -16,7 +16,15 @@ set(RPC_DEVICE_ARCH sm_52)
 set(RPC_COMPUTE_ARCH compute_52)
 set(OPT -O3)
 
-set(TEST_FILE "${CMAKE_SOURCE_DIR}/test-kernels/matrix-transpose/matrix-transpose.cu")
+# Generate a small test file. This is used to grep one of clang's internal commands
+# Alternatively, use a real test file:
+# set(TEST_FILE "${CMAKE_SOURCE_DIR}/test-kernels/matrix-transpose/matrix-transpose.cu")
+set(TEST_FILE "coarsening_test_compile.cu")
+execute_process(
+  COMMAND echo " __global__ void foo(){} int main(int argc, char **argv){return 0;}"
+  OUTPUT_FILE coarsening_test_compile.cu
+  WORKING_DIRECTORY /tmp
+)
 execute_process(
   COMMAND clang++ ${TEST_FILE} -o mt --cuda-gpu-arch=sm_52 -L/usr/local/cuda/lib64 -lcudart -ldl -lrt -v
   ERROR_VARIABLE test_compile_cmd
@@ -24,7 +32,13 @@ execute_process(
 )
 
 string(REGEX MATCH "[^\n]* -cc1 -triple x86_64-unknown-linux-gnu[^\n]*" raw_cc1_call ${test_compile_cmd})
+if(raw_cc1_call STREQUAL "")
+  message(FATAL_ERROR "Failed to identify required internal command from test compile."
+                      "Check if command can be identified differently."
+                      "Aborting...")
+endif()
 
+# Setting up command for later use
 string(REGEX REPLACE "-fcuda-include-gpubinary [^((?<!\\)\ )]*.fatbin(\")?" "" raw_cc1_call_1 ${raw_cc1_call})
 string(REGEX REPLACE "-fdebug-compilation-dir /tmp" "" raw_cc1_call_2 ${raw_cc1_call_1})
 string(REGEX REPLACE "-o /tmp/[^((?<!\\)\ )]*.o" "" raw_cc1_call_3 ${raw_cc1_call_2})
@@ -32,6 +46,7 @@ string(REGEX REPLACE "-main-file-name [^((?<!\\)\ )]*.cu" "" raw_cc1_call_4 ${ra
 string(REGEX REPLACE " -v " " " raw_cc1_call_5 ${raw_cc1_call_4})
 string(REGEX REPLACE "-x cuda ${TEST_FILE}" "" raw_cc1_call_6 ${raw_cc1_call_5})
 string(REGEX REPLACE " -emit-obj " " -emit-llvm " cc1_call_str ${raw_cc1_call_6})
+message(STATUS "RAW_CC1_CALL: ${raw_cc1_call}")
 message(STATUS "CC1_CALL: ${cc1_call_str}")
 separate_arguments(cc1_call UNIX_COMMAND ${cc1_call_str})
 
