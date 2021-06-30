@@ -96,18 +96,12 @@ function(add_coarsening_to_target)
   
   foreach(src_file ${ADD_COARSENING_SOURCES})
     message(STATUS "${src_file}")
-    string(REPLACE "/" "_" target_base_name "${src_file}")
+    get_filename_component(src_file_wle "${src_file}" NAME_WLE)
+    set(target_base_name "${src_file_wle}")
     message(STATUS "${target_base_name}")
     get_filename_component(src_file_base_name "${src_file}" NAME)
     message(STATUS "FILE BASE NAME: ${src_file_base_name}")
     
-    get_directory_property (inc_dirs INCLUDE_DIRECTORIES)
-    #list(TRANSFORM inc_dirs PREPEND "-I")
-    #list(JOIN inc_dirs " " INCLUDE_STRING)
-    foreach(dir ${inc_dirs})
-      string(APPEND INCLUDE_COMPILER_STRING "-I${dir} ")
-    endforeach()
-
     add_custom_target("${target_base_name}_device.bc" ALL
       clang++
         -x cuda -c -emit-llvm
