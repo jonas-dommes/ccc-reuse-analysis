@@ -1,1 +1,1 @@
-add_library(rpc-runtime OBJECT dynamic.cpp)
+add_library(rpc-runtime MODULE dynamic.cpp)
