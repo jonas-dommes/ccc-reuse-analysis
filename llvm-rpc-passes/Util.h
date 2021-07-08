@@ -40,6 +40,11 @@
 #define CUDA_SHUFFLE_BFLY      "nvvm.shfl.bfly"
 #define CUDA_SHUFFLE_IDX       "nvvm.shfl.idx"
 
+#define ADDRESS_SPACE_DEFAULT  0
+#define ADDRESS_SPACE_GLOBAL   1
+//TODO also use:
+//#define ADDRESS_SPACE_SHARED 3
+
 namespace llvm {
     class Function;
     class Instruction;
@@ -61,6 +66,7 @@ class Util {
     static std::string demangle(std::string mangledName);
     static std::string nameFromDemangled(std::string demangledName);
     static unsigned int numeralDimension(std::string strDim);
+    static unsigned int numeralDimension(char strDim);
     static std::string dimensionToString(unsigned int dimension);
     static bool isKernelFunction(llvm::Function& F);
     static std::string cudaVarToRegister(std::string var);

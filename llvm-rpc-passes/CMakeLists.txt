@@ -23,6 +23,9 @@ add_llvm_library( LLVMCUDACoarsening MODULE BUILDTREE_ONLY
   RegionCoarsening.cpp
   BenefitAnalysisPass.cpp
   BranchExtractionPass.cpp
+  MemAccessDescriptor.cpp
+  CacheLineReuseAnalysis.cpp
+  AssumeRestrictArgs.cpp
 
   DEPENDS
   intrinsics_gen

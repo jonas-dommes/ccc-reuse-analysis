@@ -85,15 +85,22 @@ std::string Util::nameFromDemangled(std::string demangledName)
     return demangledName;
 }
 
+unsigned int Util::numeralDimension(char strDim) {
+    assert (strDim == 'x' || strDim == 'y' || strDim == 'z');
+
+    static std::unordered_map<char, unsigned int> tmp = {{'x', 0},
+                                                         {'y', 1},
+                                                         {'z', 2}};
+
+    return tmp[strDim];
+
+}
+
 unsigned int Util::numeralDimension(std::string strDim)
 {
     assert (strDim == "x" || strDim == "y" || strDim == "z");
 
-    static std::unordered_map<std::string, unsigned int> tmp = {{"x", 0},
-                                                                {"y", 1},
-                                                                {"z", 2}};
-
-    return tmp[strDim];
+    return numeralDimension(strDim.front());
 }
 
 std::string Util::dimensionToString(unsigned int dimension)

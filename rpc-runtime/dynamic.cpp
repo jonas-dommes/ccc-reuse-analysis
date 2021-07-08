@@ -217,7 +217,7 @@ extern "C" unsigned int rpcLaunchKernel(const void  *ptr,
     }
 
     if (ptr != ptrIt->second) {
-        printf ("RPC_ERROR:  kernel not found #3 %s\n", nameScaled.c_str());
+        //printf ("RPC_ERROR:  kernel not found #3 %s\n", nameScaled.c_str());
         return errorFallback(ptr, gridDim, blockDim, args, sharedMem, stream);
     }
 
@@ -266,3 +266,4 @@ extern "C" unsigned int rpcLaunchKernel(const void  *ptr,
                             sharedMem,
                             stream);
 }
+
