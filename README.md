@@ -59,7 +59,7 @@ coarsening_compile(TARGET target
                    SOURCES src1 [src2...]
                    [STATIC
                     KERNEL     <specific-kernel-name|all>
-                    MODE       <thread|block|dynamic>
+                    MODE       <thread|block>
                     DIMENSION  <x|y|z>
                     STRIDE     <number>
                    ])
