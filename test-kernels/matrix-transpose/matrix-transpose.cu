@@ -91,6 +91,23 @@
    for (int j = 0; j < TILE_DIM; j += BLOCK_ROWS)
       odata[(y+j)*width + x] = tile[(threadIdx.y+j)*TILE_DIM + threadIdx.x];          
  }
+
+
+ // 2d simple transpose
+ // Simplest transpose; doesn't use shared memory.
+ // Global memory reads are coalesced but writes are not.
+ __global__ void transposeSimple(float *odata, const float *idata)
+ {
+   int col = blockIdx.x * blockDim.x + threadIdx.x;
+   int row = blockIdx.y * blockDim.y + threadIdx.y;
+   int width = gridDim.x * blockDim.x;
+   int height = gridDim.y * blockDim.y;
+   int indexIn = row * width + col;
+   int indexOut = col * height + row;
+
+   odata[indexOut]  = idata[indexIn];
+ 
+ }
  
  // naive transpose
  // Simplest transpose; doesn't use shared memory.
@@ -154,13 +171,16 @@
  
  int main(int argc, char **argv)
  {
-   const int nx = 1024;
-   const int ny = 1024;
+   const int nx = 8*1024;
+   const int ny = 8*1024;
    const int mem_size = nx*ny*sizeof(float);
  
    dim3 dimGrid(nx/TILE_DIM, ny/TILE_DIM, 1);
    dim3 dimBlock(TILE_DIM, BLOCK_ROWS, 1);
  
+   dim3 dimGridSimple(nx/TILE_DIM, ny/TILE_DIM, 1);
+   dim3 dimBlockSimple(TILE_DIM, TILE_DIM, 1);
+
    int devId = 0;
    if (argc > 1) devId = atoi(argv[1]);
  
@@ -250,6 +270,22 @@
    checkCuda( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
    checkCuda( cudaMemcpy(h_cdata, d_cdata, mem_size, cudaMemcpyDeviceToHost) );
    postprocess(h_idata, h_cdata, nx * ny, ms);
+
+   // --------------
+   // transposeSimple
+   // --------------
+   printf("%25s", "naive simple (from OCL)");
+   checkCuda( cudaMemset(d_tdata, 0, mem_size) );
+   // warmup
+   transposeSimple<<<dimGridSimple, dimBlockSimple>>>(d_tdata, d_idata);
+   checkCuda( cudaEventRecord(startEvent, 0) );
+   for (int i = 0; i < NUM_REPS; i++)
+      transposeSimple<<<dimGridSimple, dimBlockSimple>>>(d_tdata, d_idata);
+   checkCuda( cudaEventRecord(stopEvent, 0) );
+   checkCuda( cudaEventSynchronize(stopEvent) );
+   checkCuda( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+   checkCuda( cudaMemcpy(h_tdata, d_tdata, mem_size, cudaMemcpyDeviceToHost) );
+   postprocess(gold, h_tdata, nx * ny, ms);
  
    // --------------
    // transposeNaive 

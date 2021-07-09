@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-include("${CMAKE_CURRENT_LIST_DIR}/coarsening-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/coarsening-targets.cmake" OPTIONAL)
 set(COARSENING_INSTALL_LOCATION "@COARSENING_INSTALL_LOCATION@")
 
 if(NOT DEFINED CCC_DEVICE_ARCH)
