@@ -18,7 +18,8 @@ The CUDA Coarsening Compiler can operate in `static` and `dynamic` mode. Static 
 Building can be done by simply invoking `cmake` followed by `make`, which should be sufficient when working on CCC itself.
 
 ## Building for external use
-In order to coarsen programs of your own projects, it is recommended that you add CCC as a cmake dependency. This section will walk you through what to do. First, it is recommended that you build CCC the following way:
+If you want to coarsen programs of your own CMake projects, you can include CCC as a CMake dependency.
+This section will walk you through this step by step. First, let's build CCC:
 
 ```
 cmake /path/to/cuda-coarsening-compiler -DCMAKE_INSTALL_PREFIX=/path/to/install-dir"
@@ -46,7 +47,7 @@ The following arguments can be provided to the build system:
 * `CUDA_PATH` is used to locate CUDA_PATH/lib64. Defaults to `/usr/local/cuda`.
 * `GENERATE_LL_FILES` to produce human-readable versions of the bitcode files.
 
-It's now time to build your project. If you have specified a `CMAKE_INSTALL_PREFIX` path before, you will need to specify a `CMAKE_PREFIX_PATH` (note the appended `/lib`).
+Now it's time to build your project. If you have specified a `CMAKE_INSTALL_PREFIX` path before, you will need to specify a `CMAKE_PREFIX_PATH` (note the appended `/lib`):
 ```
 cmake /path/to/my-project -DCMAKE_PREFIX_PATH=/path/to/install-dir/lib -DCCC_DEVICE_ARCH=sm_52 -DCCC_COMPUTE_ARCH=compute_52
 make
@@ -73,12 +74,11 @@ Adjust your build commands as described above.
 
 ## Build environment
 
-The `coarsening_compile()` CMake function requires tools from both LLVM and CUDA in order to work, which need to be visible in your `$PATH`:
+The CUDA Coarsening Compiler was tested with LLVM 9.0 and CUDA 10.1.
+The `coarsening_compile()` CMake function requires tools from both LLVM and CUDA, which need to be visible in your `$PATH`:
 
 * From LLVM: `opt`, `llc`, `clang` and `clang++`.
 * From CUDA: `ptxas` and `fatbinary`.
-
-The project was tested with LLVM 9.0.1 and CUDA 10.1.
 
 ## Running a coarsened programm
 
