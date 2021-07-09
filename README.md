@@ -58,10 +58,10 @@ Although dynamic mode is recommended, the `coarsening_compile()` function also s
 coarsening_compile(TARGET target
                    SOURCES src1 [src2...]
                    [STATIC
-                    KERNEL <specific-kernel-name|all>
-                    MODE   <thread|block|dynamic>
-                    DIMENSION <x|y|z>
-                    STRIDE <number>
+                    KERNEL     <specific-kernel-name|all>
+                    MODE       <thread|block|dynamic>
+                    DIMENSION  <x|y|z>
+                    STRIDE     <number>
                    ])
 ```
 
