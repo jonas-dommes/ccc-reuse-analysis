@@ -77,6 +77,8 @@ The `coarsening_compile()` CMake function requires tools from both LLVM and CUDA
 * From LLVM: `opt`, `llc`, `clang` and `clang++`.
 * From CUDA: `ptxas` and `fatbinary`.
 
+The project was tested with LLVM 9.0.1 and CUDA 10.1.
+
 ## Running a coarsened programm
 
 By default, the CUDA Coarsening Compiler operates in `dynamic` mode. This means that a bunch of differently coarsened kernels are compiled and linked into the target binary. By setting the `RPC_CONFIG` environment variable, you can then select at runtime which version of the kernel you would like to execute, although the choice can be made automatically in the future.
