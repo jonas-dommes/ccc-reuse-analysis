@@ -6,7 +6,7 @@
 # Local environment variables required by the script:
 #
 # RPC_LLVM_BIN_DIR=.../LLVM/build_debug/bin
-# RPC_RUNTIME_LIB=.../cuda-coarsening/runtime/rpc_dynamic.o
+# RPC_RUNTIME_LIB=/path/to/rpc-runtime/librpc-runtime.so
 # CUDA_PATH=/opt/cuda
 #
 # ------------------------------------------------------------------------------
