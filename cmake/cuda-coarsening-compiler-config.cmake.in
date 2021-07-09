@@ -3,19 +3,22 @@ cmake_minimum_required(VERSION 3.17)
 include("${CMAKE_CURRENT_LIST_DIR}/coarsening-targets.cmake")
 set(COARSENING_INSTALL_LOCATION "@COARSENING_INSTALL_LOCATION@")
 
-if(CCC_DEVICE_ARCH STREQUAL "")
+if(NOT DEFINED CCC_DEVICE_ARCH)
   message(FATAL_ERROR "CCC_DEVICE_ARCH not set (sample valueL: sm_52)")
 endif()
-if(CCC_COMPUTE_ARCH STREQUAL "")
+if(NOT DEFINED CCC_COMPUTE_ARCH)
   message(FATAL_ERROR "CCC_COMPUTE_ARCH not set (sample value: compute_52)")
 endif()
-if(OPT STREQUAL "")
+if(NOT DEFINED OPT)
   message(STATUS "OPT not set. Defaulting to -O3")
-  set(OPT -O3)
+  set(OPT "-O3")
 endif()
-if(CUDA_PATH STREQUAL "")
-  message("CUDA_PATH not set, defaulting to /usr/local/cuda. If you suspect this to cause problems, set it so that CUDA_PATH/lib64 can be found.")
+if(NOT CUDA_PATH)
+  message(STATUS "CUDA_PATH not set, defaulting to /usr/local/cuda. If you suspect this to cause problems, set it so that CUDA_PATH/lib64 can be found.")
   set(CUDA_PATH /usr/local/cuda)
+endif()
+if(NOT DEFINED GENERATE_LL_FILES)
+  message(STATUS "GENERATE_LL_FILES not set (set it to generate readable intermediate files)")
 endif()
 
 
@@ -54,8 +57,8 @@ separate_arguments(cc1_call UNIX_COMMAND ${cc1_call_str})
 
 # This function will work with the standard cmake include mechanism
 function(coarsening_compile)
-  set(options)
-  set(one_value_args TARGET)
+  set(options STATIC)
+  set(one_value_args TARGET KERNEL MODE DIMENSION FACTOR STRIDE)
   set(multi_value_args SOURCES)
   cmake_parse_arguments(COARSENING
     "${options}"
@@ -63,6 +66,26 @@ function(coarsening_compile)
     "${multi_value_args}"
     ${ARGN}
   )
+  if (COARSENING_COMPILE_STATIC)
+    set(coarsening_flags
+        "-coarsened-kernel"     "${COARSENING_COMPILE_KERNEL}"
+        "-coarsening-dimension" "${COARSENING_COMPILE_DIMENSION}"
+        "-coarsening-factor"    "${COARSENING_COMPILE_FACTOR}"
+        "-coarsening-stride"    "${COARSENING_COMPILE_STRIDE}"
+        "-coarsening-mode"      "${COARSENING_COMPILE_MODE}"
+    )
+  else()
+    set(coarsening_flags
+        "-coarsened-kernel" "all"
+        "-coarsening-mode"  "dynamic"
+        "-coarsening-dimension" "x"
+        "-coarsening-factor"    "2"
+        "-coarsening-stride"    "1"
+    )
+    set(link_runtime_flag 
+        "$<TARGET_OBJECTS:rpc-runtime>"
+       )
+  endif()
 
   if (cc1_call STREQUAL "")
     message(FATAL_ERROR "This should never happen")
@@ -71,6 +94,7 @@ function(coarsening_compile)
   set(target_build_dir "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/${COARSENING_TARGET}.dir")
   file(MAKE_DIRECTORY ${target_build_dir})
   set(link_file_list "")
+  set(readable_file_list "")
   
   foreach(src_file ${COARSENING_SOURCES})
     get_filename_component(build_name_short "${src_file}" NAME_WLE)
@@ -83,12 +107,13 @@ function(coarsening_compile)
       COMMAND
         clang++
         -x cuda
-	-c
-	-emit-llvm
+        -c
+        -emit-llvm
         ${OPT}
         "${CMAKE_CURRENT_SOURCE_DIR}/${src_file}"
         "-I$<JOIN:$<TARGET_PROPERTY:${COARSENING_TARGET},INCLUDE_DIRECTORIES>, -I>"
         -Xclang -disable-O0-optnone
+        -fno-discard-value-names
         #--cuda-path="${CUDA_PATH}"
         --cuda-gpu-arch="${CCC_DEVICE_ARCH}"
         --cuda-device-only
@@ -103,8 +128,8 @@ function(coarsening_compile)
       COMMAND
         clang++
         -x cuda
-	-c
-	-emit-llvm
+        -c
+        -emit-llvm
         ${OPT}
         "${CMAKE_CURRENT_SOURCE_DIR}/${src_file}"
         "-I$<JOIN:$<TARGET_PROPERTY:${COARSENING_TARGET},INCLUDE_DIRECTORIES>, -I>"
@@ -123,9 +148,7 @@ function(coarsening_compile)
         opt
         -load "$<TARGET_FILE:LLVMCUDACoarsening>"
         -mem2reg -indvars -structurizecfg -be
-        -cuda-coarsening-pass
-        -coarsened-kernel all
-        -coarsening-mode dynamic
+        -cuda-coarsening-pass ${coarsening_flags}
         -o "${build_name_short}_device_coarsened.bc"
          < "${build_name_short}_device.bc"
       WORKING_DIRECTORY
@@ -137,12 +160,12 @@ function(coarsening_compile)
 
     add_custom_command(
       OUTPUT
-        "${build_name_full}_device_coarsened.ptx"
+        "${build_name_full}.${CCC_DEVICE_ARCH}.ptx"
       COMMAND
         llc
         ${OPT}
         -mcpu=${CCC_DEVICE_ARCH}
-        -o "${build_name_short}_device_coarsened.ptx"
+        -o "${build_name_short}.${CCC_DEVICE_ARCH}.ptx"
         "${build_name_short}_device_coarsened.bc"
       WORKING_DIRECTORY
          "${target_build_dir}"
@@ -152,33 +175,33 @@ function(coarsening_compile)
 
     add_custom_command(
       OUTPUT
-        "${build_name_full}_device_coarsened.cubin"
+        "${build_name_full}.${CCC_DEVICE_ARCH}.cubin" #TODO rename
       COMMAND
         ptxas
         -m64
         --gpu-name="${CCC_DEVICE_ARCH}"
-        "${build_name_short}_device_coarsened.ptx"
-        --output-file "${build_name_short}_device_coarsened.cubin"
+        "${build_name_short}.${CCC_DEVICE_ARCH}.ptx"
+        --output-file "${build_name_short}.${CCC_DEVICE_ARCH}.cubin" #TODO rename
       WORKING_DIRECTORY
          "${target_build_dir}"
       DEPENDS
-        "${build_name_full}_device_coarsened.ptx"
+        "${build_name_full}.${CCC_DEVICE_ARCH}.ptx" #TODO
     )
 
     add_custom_command(
       OUTPUT
-        "${build_name_full}_device_coarsened.fatbin"
+        "${build_name_full}.fatbin"
       COMMAND
         fatbinary
         -64
-        --create "${build_name_short}_device_coarsened.fatbin"
-        "--image=profile=${CCC_DEVICE_ARCH},file=${build_name_short}_device_coarsened.cubin"
-        "--image=profile=${CCC_COMPUTE_ARCH},file=${build_name_short}_device_coarsened.ptx"
+        --create "${build_name_short}.fatbin" #TODO
+        "--image=profile=${CCC_DEVICE_ARCH},file=${build_name_short}.${CCC_DEVICE_ARCH}.cubin" #TODO
+        "--image=profile=${CCC_COMPUTE_ARCH},file=${build_name_short}.${CCC_DEVICE_ARCH}.ptx" #TODO
       WORKING_DIRECTORY
          "${target_build_dir}"
       DEPENDS
-        "${build_name_full}_device_coarsened.ptx"
-        "${build_name_full}_device_coarsened.cubin"
+        "${build_name_full}.${CCC_DEVICE_ARCH}.ptx" #TODO
+        "${build_name_full}.${CCC_DEVICE_ARCH}.cubin" #TODO
     )
    
     add_custom_command(
@@ -186,7 +209,7 @@ function(coarsening_compile)
         "${build_name_full}_combined.bc"
       COMMAND
         ${cc1_call}
-        -fcuda-include-gpubinary "${build_name_short}_device_coarsened.fatbin"
+        -fcuda-include-gpubinary "${build_name_short}.fatbin" #TODO
         -fdebug-compilation-dir "${target_build_dir}"
         -o "${build_name_full}_combined.bc"
         -main-file-name "${src_file_base_name}"
@@ -194,7 +217,7 @@ function(coarsening_compile)
       WORKING_DIRECTORY
          "${target_build_dir}"
       DEPENDS
-        "${build_name_full}_device_coarsened.fatbin"
+        "${build_name_full}.fatbin" #TODO
         "${build_name_full}_host.bc"
     )
 
@@ -204,9 +227,7 @@ function(coarsening_compile)
       COMMAND
         opt
         -load "$<TARGET_FILE:LLVMCUDACoarsening>"
-        -cuda-coarsening-pass
-        -coarsened-kernel all
-        -coarsening-mode dynamic
+        -cuda-coarsening-pass ${coarsening_flags}
         -o "${build_name_short}_combined_coarsened.bc"
         < "${build_name_short}_combined.bc"
       WORKING_DIRECTORY
@@ -231,6 +252,32 @@ function(coarsening_compile)
         "${build_name_full}_combined_coarsened.bc"
     )
 
+    add_custom_command(
+      OUTPUT
+        "${build_name_full}_device.ll"
+        "${build_name_full}_host.ll"
+        "${build_name_full}_device_coarsened.ll"
+        "${build_name_full}_combined_coarsened.ll"
+      COMMAND llvm-dis "${build_name_short}_device.bc"             -o "${build_name_short}_device.ll"
+      COMMAND llvm-dis "${build_name_short}_host.bc"               -o "${build_name_short}_host.ll"
+      COMMAND llvm-dis "${build_name_short}_device_coarsened.bc"   -o "${build_name_short}_device_coarsened.ll"
+      COMMAND llvm-dis "${build_name_short}_combined_coarsened.bc" -o "${build_name_short}_combined_coarsened.ll"
+      DEPENDS 
+        "${build_name_full}_device.bc"
+        "${build_name_full}_host.bc"
+        "${build_name_full}_device_coarsened.bc"
+        "${build_name_full}_combined_coarsened.bc"
+      WORKING_DIRECTORY
+         "${target_build_dir}"
+    )
+
+    if(DEFINED GENERATE_LL_FILES)
+      list(APPEND readable_file_list "${build_name_full}_device.ll")
+      list(APPEND readable_file_list "${build_name_full}_host.ll")
+      list(APPEND readable_file_list "${build_name_full}_device_coarsened.ll")
+      list(APPEND readable_file_list "${build_name_full}_combined_coarsened.ll")
+    endif()
+
     list(APPEND link_file_list "${build_name_full}_coarsened.o")
 
   endforeach()
@@ -244,7 +291,7 @@ function(coarsening_compile)
       -ldl
       -lm
       -lstdc++
-      "$<TARGET_OBJECTS:rpc-runtime>"
+      "${link_runtime_flag}"
       ${link_file_list}
       -o "${CMAKE_CURRENT_BINARY_DIR}/${COARSENING_TARGET}"
     WORKING_DIRECTORY
@@ -252,6 +299,7 @@ function(coarsening_compile)
     DEPENDS
       rpc-runtime
       ${link_file_list}
+      ${readable_file_list}
   )
 
 endfunction()
