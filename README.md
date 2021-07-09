@@ -44,6 +44,7 @@ The following arguments can be provided to the build system:
 * `CCC_COMPUTE_ARCH` expects a CUDA compute architecture, for instance `compute_52`A
 * `OPT` expects any optimization flags. Defaults to `-O3` and should not be changed.
 * `CUDA_PATH` is used to locate CUDA_PATH/lib64. Defaults to `/usr/local/cuda`.
+* `GENERATE_LL_FILES` to produce human-readable versions of the bitcode files.
 
 It's now time to build your project. If you have specified a `CMAKE_INSTALL_PREFIX` path before, you will need to specify a `CMAKE_PREFIX_PATH` (note the appended `/lib`).
 ```
