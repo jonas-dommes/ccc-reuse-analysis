@@ -78,9 +78,6 @@ function(coarsening_compile)
     set(coarsening_flags
         "-coarsened-kernel" "all"
         "-coarsening-mode"  "dynamic"
-        "-coarsening-dimension" "x"
-        "-coarsening-factor"    "2"
-        "-coarsening-stride"    "1"
     )
     set(link_runtime_flag 
         "$<TARGET_OBJECTS:rpc-runtime>"
