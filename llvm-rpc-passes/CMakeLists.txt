@@ -32,3 +32,5 @@ add_llvm_library( LLVMCUDACoarsening MODULE BUILDTREE_ONLY
   PLUGIN_TOOL
   opt
   )
+
+target_include_directories(LLVMCUDACoarsening PUBLIC ${LLVM_INCLUDE_DIRS})
