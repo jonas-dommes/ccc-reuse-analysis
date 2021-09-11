@@ -62,12 +62,12 @@ std::string nameFromDemangled(std::string demangledName)
     return demangledName;
 }
 
-extern "C" unsigned int cudaLaunchKernel(const void  *ptr, 
+extern "C" unsigned int cudaLaunchKernel(const void  *ptr,
                                          dim3         gridDim,
                                          dim3         blockDim,
                                          void       **args,
                                          size_t       sharedMem,
-                                         void        *stream); 
+                                         void        *stream);
 
 extern "C" void __cudaRegisterFunction(void       **fatCubinHandle,
                                        const char  *hostFun,
@@ -80,7 +80,7 @@ extern "C" void __cudaRegisterFunction(void       **fatCubinHandle,
                                        dim3        *gDim,
                                        int         *wSize);
 
-inline unsigned int errorFallback(const void  *ptr, 
+inline unsigned int errorFallback(const void  *ptr,
                                   dim3         gridDim,
                                   dim3         blockDim,
                                   void       **args,
@@ -156,7 +156,7 @@ const void rpcRegisterFunction(void       **fatCubinHandle,
 
     std::string name = demangle(deviceFun);
     name = nameFromDemangled(name);
-    printf("Registering %s\n", name.c_str());
+    // printf("Registering %s\n", name.c_str());
 
     nameKernelMap[name] = hostFun;
 
@@ -172,7 +172,7 @@ const void rpcRegisterFunction(void       **fatCubinHandle,
                            wSize);
 }
 
-extern "C" unsigned int rpcLaunchKernel(const void  *ptr, 
+extern "C" unsigned int rpcLaunchKernel(const void  *ptr,
                                         dim3         gridDim,
                                         dim3         blockDim,
                                         void       **args,
@@ -182,9 +182,9 @@ extern "C" unsigned int rpcLaunchKernel(const void  *ptr,
     char *kernelConfig = getenv("RPC_CONFIG");
     if (!kernelConfig) {
         return errorFallback(ptr, gridDim, blockDim, args, sharedMem, stream);
-    } 
+    }
 
-    coarseningConfig config; 
+    coarseningConfig config;
 
     // Expected format <kernelname>,<dim>,<block/thread>,<factor>,<stride>
     if (!parseConfig(kernelConfig, &config)) {
@@ -266,4 +266,3 @@ extern "C" unsigned int rpcLaunchKernel(const void  *ptr,
                             sharedMem,
                             stream);
 }
-
