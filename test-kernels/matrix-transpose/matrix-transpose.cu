@@ -205,7 +205,7 @@ int main(int argc, char **argv)
     checkCuda( cudaMalloc(&d_tdata, mem_size) );
 
     // check parameters and calculate execution configuration
-    if (nx % TILE_DIM || ny % TILE_DIM) {
+    if ((bool) (nx % TILE_DIM) ||(bool) (ny % TILE_DIM)) {
         printf("nx and ny must be a multiple of TILE_DIM\n");
         goto error_exit;
     }
