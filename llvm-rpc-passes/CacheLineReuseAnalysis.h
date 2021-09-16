@@ -15,6 +15,17 @@
 
 using namespace llvm;
 
+struct CacheLineReuseInfo {
+    bool cacheLineReuse;
+    bool dataDependent;
+};
+
+struct AnalysisPlanNode {
+    BasicBlock * block;
+    bool isLoopHeader;
+    int loopIteration;
+};
+
 class CacheLineReuseAnalysis : public FunctionPass {
 
   public:
@@ -25,6 +36,9 @@ class CacheLineReuseAnalysis : public FunctionPass {
     virtual void getAnalysisUsage(AnalysisUsage &au) const;
     virtual bool runOnFunction(Function &F);
     //virtual bool doFinalization(Module &M);
+    bool isCacheLineReuse();
+    bool isDataDependent();
+    bool isErrored();
 
   private:
     std::string             m_kernelName;
@@ -34,14 +48,18 @@ class CacheLineReuseAnalysis : public FunctionPass {
     DominatorTree          *m_domT;
     GridAnalysisPass       *m_gridAnalysis;
     int                     dimensions;
+    bool                    clrErrors;
 
     std::set<Instruction*>  memops;
     std::set<Instruction*>  relevantInstructions;
     std::set<Loop *>        relevantLoops;
+    std::set<PHINode *>     loopPhis;
+
+    std::map<Instruction*, CacheLineReuseInfo>  memopsDiagnostics;
 
     std::map<BasicBlock*, std::map<Instruction*, std::vector<MemAccessDescriptor>>> INs;
     std::map<BasicBlock*, std::map<Instruction*, std::vector<MemAccessDescriptor>>> OUTs;
-    std::vector<BasicBlock*> worklist;
+    std::vector<AnalysisPlanNode> worklist;
     std::map<StringRef, std::set<int>> accessedCacheLines;
     std::vector<std::string> report;
 
@@ -56,16 +74,21 @@ class CacheLineReuseAnalysis : public FunctionPass {
 
     void visitBinaryOp(function<int(int, int)> f, Instruction * inst);
     void visitSExt(Instruction * inst);
+    void visitZExt(Instruction * inst);
     void visitTrunc(Instruction * inst);
     void visitICmp(ICmpInst * inst);
+    void visitSelect(SelectInst * inst);
     void visitBitCast(Instruction * inst);
     void visitGetElementPtr(Instruction * inst);
+    void visitAddrSpaceCast(Instruction * inst);
+    void visitPhi(PHINode * inst);
     
     std::vector<MemAccessDescriptor> getMADs(Value * v);
 
     int getDimensionality();
+    void getLoopAnalysisPlan(BasicBlock *header, int loopIteration);
     void preprocess(Function &function, std::set<Instruction*>& memops, std::set<Instruction*>& relevantInstructions);
-    void simulateMemoryAccesses();
+    void simulateMemoryAccess(Instruction *inst);
     Value * getAccessedSymbolPtr(Value * v);
     StringRef getAccessedSymbolName(Value * v);
     bool isCachedMemoryAccess(Instruction * inst);
