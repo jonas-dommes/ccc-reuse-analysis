@@ -140,7 +140,11 @@ list<int> MemAccessDescriptor::getMemAccesses(int warpSize, int align, int cache
             for (int i = 0; i < sizes[0]; i+=warpSize) {
                 for (int c = i; c < i+warpSize && c < sizes[0]; c++) {
                     warpAccess.insert(((mad[k][j][c] * align) / cacheLineSize) * cacheLineSize);
+<<<<<<< HEAD
 
+=======
+                    
+>>>>>>> 1d5258a5711ab2ea75f1a4461acb3c2a051a6f4e
                     // test for consecutive accesses
                     if (consecutiveAccessCounter > 0 && lastAccess != mad[k][j][c] - 1) {
                         *fullCoalescing = false;
@@ -152,10 +156,17 @@ list<int> MemAccessDescriptor::getMemAccesses(int warpSize, int align, int cache
                     }
                 }
                 #ifdef DEBUG_PRINT
+<<<<<<< HEAD
                 for (int c : warpAccess) {
                     llvm::errs() << c << " ";
                 }
                 llvm::errs() << "\n";
+=======
+                    for (int c : warpAccess) {
+                        llvm::errs() << c << " ";
+                    }
+                    llvm::errs() << "\n";
+>>>>>>> 1d5258a5711ab2ea75f1a4461acb3c2a051a6f4e
                 #endif
                 result.insert(result.end(), warpAccess.begin(), warpAccess.end());
                 warpAccess.clear();
@@ -163,9 +174,15 @@ list<int> MemAccessDescriptor::getMemAccesses(int warpSize, int align, int cache
         }
     }
     #ifdef DEBUG_PRINT
+<<<<<<< HEAD
     if (fullCoalescing) {
         llvm::errs() << "Mem accesses are fully coalesced\n";
     }
+=======
+        if (fullCoalescing) {
+            llvm::errs() << "Mem accesses are fully coalesced\n";
+        }
+>>>>>>> 1d5258a5711ab2ea75f1a4461acb3c2a051a6f4e
     #endif
     CACHE_SIZE += result.size() * sizeof(int);
     return result;

@@ -6,10 +6,11 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Analysis/LoopInfo.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/ScalarEvolution.h"
+#include "llvm/Analysis/LoopIterator.h"
+#include "llvm/ADT/PostOrderIterator.h"
 
 #include <set>
 #include <map>
@@ -34,11 +35,34 @@ extern cl::opt<std::string> CLCoarseningMode;
 cl::opt<unsigned int> WarpSize("warp-size", cl::init(32), cl::Hidden, cl::desc("The size of one warp within which threads perform lock-step execution"));
 cl::opt<unsigned int> CacheLineSize("cache-line-size", cl::init(32), cl::Hidden, cl::desc("The size of a cache line in bytes"));
 
+bool CacheLineReuseAnalysis::isCacheLineReuse() {
+    for (const auto &m : memopsDiagnostics) {
+        if (m.second.cacheLineReuse) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CacheLineReuseAnalysis::isDataDependent() {
+    for (const auto &m : memopsDiagnostics) {
+        if (m.second.dataDependent) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CacheLineReuseAnalysis::isErrored() {
+    return clrErrors;
+}
+
 void CacheLineReuseAnalysis::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<LoopInfoWrapperPass>();
     AU.addRequired<PostDominatorTreeWrapperPass>();
     AU.addRequired<DominatorTreeWrapperPass>();
     AU.addRequired<GridAnalysisPass>();
+    AU.setPreservesAll();
 }
 
 bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
@@ -53,12 +77,44 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
 
     // Initialisations
     memops.clear();
+    memopsDiagnostics.clear();
     relevantInstructions.clear();
+    loopPhis.clear();
+    clrErrors = false;
     m_loopInfo = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
     m_postDomT = &getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
     m_domT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
     m_gridAnalysis = &getAnalysis<GridAnalysisPass>();
     dimensions = getDimensionality();
+
+    /*for (BasicBlock &B : F) {
+        errs() << "Basic block " << B.getName() << " has " << B.size() << " instructions "
+               << "(part of loop: " << m_loopInfo->getLoopFor(&B)
+               << " is loop header: " << m_loopInfo->isLoopHeader(&B)
+               << " loop depth: " << m_loopInfo->getLoopDepth(&B) << ")\n";
+        if ( m_loopInfo->isLoopHeader(&B) ) {
+            LoopBlocksDFS DFS(m_loopInfo->getLoopFor(&B));
+            DFS.perform(m_loopInfo);
+            errs() << "===================================" << DFS.getRPO(&B) << DFS.isComplete() << "\n";
+            for (auto it = DFS.beginRPO(); it != DFS.endRPO(); it++) {
+                errs() << (*it)->getName() << "\n";
+            }
+            errs() << "===================================\n";
+        }
+    }*/
+
+    
+
+    ReversePostOrderTraversal<Function*> RPOT(&F); // Expensive to create
+    for (auto I = RPOT.begin(); I != RPOT.end(); ++I) {
+        BasicBlock *block = *I;
+        if (m_loopInfo->getLoopFor(block) == NULL) {
+            worklist.push_back({block, false, 0});
+        } else if (m_loopInfo->isLoopHeader(block) && m_loopInfo->getLoopDepth(block) == 1) {
+            getLoopAnalysisPlan(block, 1);
+            getLoopAnalysisPlan(block, 2);
+        }
+    }
 
     #ifdef DEBUG_PRINT
         errs() << "Kernel ";
@@ -67,9 +123,21 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
         for (Argument &A : F.args()) {
             errs() << "  -- " << A << "\n";
         }
+        errs() << "\n";
+
+        errs() << "Printing Analysis Plan: (loopDepth, loopIteration, isLoopHeader)\n";
+        for (auto node : worklist) {
+            errs() << "(" << m_loopInfo->getLoopDepth(node.block) << ", " << node.loopIteration << ", " << node.isLoopHeader << ") > "
+                   << node.block->getName() << "\n";
+        }
+        errs() << "\n";
     #endif
 
     preprocess(F, memops, relevantInstructions);
+    if (isDataDependent()) {
+        // cannot analyse data-dependent memory accesses
+        return false;
+    }
 
     #ifdef DEBUG_PRINT
         errs() << "Printing memops:\n";
@@ -87,29 +155,66 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
         }
     #endif
 
-    
-    worklist.push_back(&*F.begin());
-    while(!worklist.empty()) {
-        BasicBlock *block = *worklist.begin();
+    while (!worklist.empty()) {
+        AnalysisPlanNode node = *worklist.begin();
         worklist.erase(worklist.begin());
+        //errs() << node.loopIteration << " || " << node.isLoopHeader << " >> " << node.block->getName() << "\n";
+        
         std::map<Instruction*, std::vector<MemAccessDescriptor>> ins;
-        INs[block] = ins;
-        for (BasicBlock *pred : predecessors(block)) {
-            // TODO merge-copy OUTs[pred] into INs
+        INs[node.block] = ins;
+        for (BasicBlock *pred : predecessors(node.block)) {
+            for (auto const& [key, vals] : OUTs[pred]) {
+                if (INs[node.block].find(key) == INs[node.block].end()) {
+                    std::vector<MemAccessDescriptor> result;
+                    INs[node.block][key] = result;
+                }
+                for (auto const& v : vals) {
+                    INs[node.block][key].push_back(v);
+                }
+            }
         }
-        OUTs[block] = INs[block]; // using OUTs as the working set
+        if (node.isLoopHeader) {
+            // prepare loop PHIs
+            for (PHINode &phi : node.block->phis()) {
+                if (loopPhis.find(&phi) != loopPhis.end()) {
+                    int initIdx = 0;
+                    int stepIdx = 1;
+                    Instruction *inst = dyn_cast<Instruction>(phi.getIncomingValue(0));
+                    if (inst && m_domT->dominates(&phi, inst)) {
+                        initIdx = 1;
+                        stepIdx = 0;
+                    }
+                    if (node.loopIteration == 1) {
+                        // loop var initialisation value
+                        INs[node.block][&phi] = getMADs(phi.getIncomingValue(initIdx));
+                    } else {
+                        // loop var update value should have been copied from pred block 
+                        INs[node.block][&phi] = INs[node.block][cast<Instruction>(phi.getIncomingValue(stepIdx))];
+                    }
+                }
+            }
+            
+        }
+        OUTs[node.block] = INs[node.block]; // using OUTs as the working set
 
-        visitBB(block);
-        for (BasicBlock *succ : successors(block)) {
-            worklist.push_back(succ);
-            // TODO handle loops
+        visitBB(node.block);
+    }
+    
+    return false;
+}
+
+void CacheLineReuseAnalysis::getLoopAnalysisPlan(BasicBlock *header, int loopIteration) {
+    Loop *headerLoop = m_loopInfo->getLoopFor(header);
+    LoopBlocksDFS DFS(headerLoop);
+    DFS.perform(m_loopInfo);
+    for (auto it = DFS.beginRPO(); it != DFS.endRPO(); it++) {
+        if (m_loopInfo->getLoopFor(*it) == headerLoop) {
+            worklist.push_back({*it, m_loopInfo->isLoopHeader(*it), loopIteration});
+        } else if (m_loopInfo->isLoopHeader(*it)) {
+            getLoopAnalysisPlan(*it, 1);
+            getLoopAnalysisPlan(*it, 2);
         }
     }
-
-    // simulate memory accesses for all in memops
-    simulateMemoryAccesses();
-  
-    return false;
 }
 
 void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& memops, std::set<Instruction*>& relevantInstructions) {
@@ -125,6 +230,7 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
 
                 // Step 1.a Fetch the memory access
                 memops.insert(&I);
+                memopsDiagnostics[&I] = {};
 
                 const int paramIdx = I.getOpcode() == Instruction::Load ? 0 : 1;
             	if (Instruction *def = dyn_cast<Instruction>(I.getOperand(paramIdx))) {
@@ -155,6 +261,11 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
         defs.erase(defs.begin());
         // avoid looping infinitely
         if (relevantInstructions.count(inst) == 0) {
+            if (memops.count(inst) > 0) {
+                StringRef accessedSymbolName = getAccessedSymbolName(inst);
+                errs() << "Program is data-dependent in access to [" << std::string(accessedSymbolName) << "]\n";
+                memopsDiagnostics[inst].dataDependent = true;
+            }
             relevantInstructions.insert(inst);
             relevantBlocks.insert(inst->getParent());
             for (Use &u : inst->operands()) {
@@ -164,54 +275,71 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
             }
         }
     }
+
+    // Step 3. Find loop-phis
+    for (BasicBlock &B : F) {
+        for (PHINode &phi : B.phis()) {
+            bool dominates = false;
+            //errs() << phi << " -- ";
+            for (Use &v : phi.incoming_values()) {
+                //errs() << *v << " (" << m_domT->dominates(&phi, v) << ") -- ";
+                if (m_domT->dominates(&phi, v)) {
+                    dominates = true;
+                }
+            }
+            if (dominates) {
+                loopPhis.insert(&phi);
+            }
+            //errs() << "\n";
+        }
+    }
 }
 
-void CacheLineReuseAnalysis::simulateMemoryAccesses() {
-    for (Instruction *inst : memops) {
-        #ifdef DEBUG_PRINT
-            errs() << "Simulating mem access for " << *inst << "\n";
-        #endif
-        int alignment = -1;
-        bool isStore = false;
-        if (inst->getOpcode() == Instruction::Load) {
-            alignment = dyn_cast<LoadInst>(inst)->getAlignment();
-        } else if (inst->getOpcode() == Instruction::Store) {
-            alignment = dyn_cast<StoreInst>(inst)->getAlignment();
-            isStore = true;
-        }
-        Value * ptr = getAccessedSymbolPtr(inst);
-        StringRef accessedSymbolName = getAccessedSymbolName(ptr);
-        std::vector<MemAccessDescriptor> mads = getMADs(ptr);
-        std::set<int> * prevAccesses = &accessedCacheLines[accessedSymbolName];
-        std::set<int> accessesToAdd; 
-        for (MemAccessDescriptor & mad : mads) {
-            mad.print();
-            bool fullCoalescing = true;
-            list<int> accesses = mad.getMemAccesses(WarpSize, alignment, CacheLineSize, &fullCoalescing);
-            int accessesNum = accesses.size();
-            accesses.sort();
-            accesses.unique();
-            int uniqueAccessesNum = accesses.size();
-            int duplicates = accessesNum - uniqueAccessesNum;
-            
-            if (duplicates == 0 && uniqueAccessesNum > 1) {
-                std::vector<int> intersection(prevAccesses->size() + accesses.size());
-                duplicates = set_intersection(prevAccesses->begin(), prevAccesses->end(), accesses.begin(), accesses.end(), intersection.begin()) - intersection.begin();
-            }
-            
-            accessesToAdd.insert(accesses.begin(), accesses.end());
-            
-            #ifdef DEBUG_PRINT
-                errs() << "Returned " << accessesNum << " accesses to " << uniqueAccessesNum << " unique cache lines with " << duplicates << " duplicates\n";
-            #endif
-            if (isStore && fullCoalescing) {
-                errs() << "Ignoring mem accesses of fully coalesced store instruction";
-            } else if (duplicates > 0 && uniqueAccessesNum > 1) {
-                errs() << "Cache line re-use in access to [" << std::string(accessedSymbolName) << "]";
-            }
-        }
-        prevAccesses->insert(accessesToAdd.begin(), accessesToAdd.end());
+void CacheLineReuseAnalysis::simulateMemoryAccess(Instruction *inst) {
+    #ifdef DEBUG_PRINT
+        errs() << "Simulating mem access for " << *inst << "\n";
+    #endif
+    int alignment = -1;
+    bool isStore = false;
+    if (inst->getOpcode() == Instruction::Load) {
+        alignment = dyn_cast<LoadInst>(inst)->getAlignment();
+    } else if (inst->getOpcode() == Instruction::Store) {
+        alignment = dyn_cast<StoreInst>(inst)->getAlignment();
+        isStore = true;
     }
+    Value * ptr = getAccessedSymbolPtr(inst);
+    StringRef accessedSymbolName = getAccessedSymbolName(ptr);
+    std::vector<MemAccessDescriptor> mads = getMADs(ptr);
+    std::set<int> * prevAccesses = &accessedCacheLines[accessedSymbolName];
+    std::set<int> accessesToAdd; 
+    for (MemAccessDescriptor & mad : mads) {
+        mad.print();
+        bool fullCoalescing = true;
+        list<int> accesses = mad.getMemAccesses(WarpSize, alignment, CacheLineSize, &fullCoalescing);
+        int accessesNum = accesses.size();
+        accesses.sort();
+        accesses.unique();
+        int uniqueAccessesNum = accesses.size();
+        int duplicates = accessesNum - uniqueAccessesNum;
+        
+        if (duplicates == 0 && uniqueAccessesNum > 1) {
+            std::vector<int> intersection(prevAccesses->size() + accesses.size());
+            duplicates = set_intersection(prevAccesses->begin(), prevAccesses->end(), accesses.begin(), accesses.end(), intersection.begin()) - intersection.begin();
+        }
+        
+        accessesToAdd.insert(accesses.begin(), accesses.end());
+        
+        #ifdef DEBUG_PRINT
+            errs() << "Returned " << accessesNum << " accesses to " << uniqueAccessesNum << " unique cache lines with " << duplicates << " duplicates\n";
+        #endif
+        if (isStore && fullCoalescing) {
+            errs() << "Ignoring mem accesses of fully coalesced store instruction\n";
+        } else if (duplicates > 0 && uniqueAccessesNum > 1) {
+            errs() << "Cache line re-use in access to [" << std::string(accessedSymbolName) << "]\n";
+            memopsDiagnostics[inst].cacheLineReuse = true;
+        }
+    }
+    prevAccesses->insert(accessesToAdd.begin(), accessesToAdd.end());
 
 }
 
@@ -229,16 +357,20 @@ Value * CacheLineReuseAnalysis::getAccessedSymbolPtr(Value * v) {
                 return getAccessedSymbolPtr(inst->getOperand(1));
             case Instruction::BitCast:
                 return getAccessedSymbolPtr(inst->getOperand(0));
+            case Instruction::AddrSpaceCast:
+                return getAccessedSymbolPtr(inst->getOperand(0));
             case Instruction::GetElementPtr:
                 return inst;
             default:
                 errs() << "ERROR: Could not cast operand to any known type (opcode: " << std::to_string(inst->getOpcode()) << ")\n";
+                clrErrors = true;
                 return v;
         }
     } else if (isa<Argument>(v)) {
         return v;
     }
     errs() << "ERROR: No case for retreiving symbol ptr for " << std::string(v->getName()) << "\n";
+    clrErrors = true;
     return v;
 }
 
@@ -250,6 +382,7 @@ StringRef CacheLineReuseAnalysis::getAccessedSymbolName(Value * v) {
         return v->getName();
     }
     errs() << "ERROR: Failed to retrieve symbol name of " << *v  << " (name: " << v->getName() << ")\n";
+    clrErrors = true;
     return "";
 }
 
@@ -267,7 +400,8 @@ bool CacheLineReuseAnalysis::isCachedMemoryAccess(Instruction * inst) {
         case Instruction::GetElementPtr:
             return isCachedAddressSpace(dyn_cast<GetElementPtrInst>(inst)->getPointerAddressSpace());
         default:
-            errs() << "ERROR: Could not obtain address space of unknown instruction type (opcode: " << std::to_string(inst->getOpcode()) << ")";
+            errs() << "ERROR: Could not obtain address space of unknown instruction type (opcode: " << std::to_string(inst->getOpcode()) << ")\n";
+            clrErrors = true;
             return false;
     }
 }
@@ -298,6 +432,9 @@ void CacheLineReuseAnalysis::visitBB(BasicBlock *block) {
             //}
             //(*(OUTs[block][&I].begin())).print();
         }
+        if (memops.find(&I) != memops.end()) {
+            simulateMemoryAccess(&I);
+        }
     }
 }
 
@@ -314,12 +451,17 @@ void CacheLineReuseAnalysis::visitInst(Instruction *inst) {
         case Instruction::And           :       visitBinaryOp(std::bit_and<int>(), inst);                 break;
         case Instruction::Xor           :       visitBinaryOp(std::bit_xor<int>(), inst);                 break;
         case Instruction::SExt          :       visitSExt(inst);                                          break;
+        case Instruction::ZExt          :       visitZExt(inst);                                          break;
         case Instruction::Trunc         :       visitTrunc(inst);                                         break;
         case Instruction::ICmp          :       visitICmp(dyn_cast<ICmpInst>(inst));                      break;
-        //case Instruction::Select        :       visitSelect() //TODO
+        case Instruction::Select        :       visitSelect(dyn_cast<SelectInst>(inst));                  break;
         case Instruction::BitCast       :       visitBitCast(inst);                                       break;
         case Instruction::GetElementPtr :       visitGetElementPtr(inst);                                 break;
-        default: errs() << "ERROR: Unsupported opcode for instruction " << *inst << "\n";
+        case Instruction::AddrSpaceCast :       visitAddrSpaceCast(inst);                                 break;
+        case Instruction::PHI           :       visitPhi(dyn_cast<PHINode>(inst));                        break;
+        default:
+            errs() << "ERROR: Unsupported opcode for instruction " << *inst << "\n";
+            clrErrors = true;
     }
 }
 
@@ -343,6 +485,7 @@ void CacheLineReuseAnalysis::visitCall(CallInst *call) {
     else if ( calleeN.startswith(prefix + CUDA_GRID_DIM_REG  )) { visitGridDim  (call, Util::numeralDimension(calleeN.back())); }
     else {
         errs() << "ERROR: Called unsupported function: " << calleeN << "\n"; //TODO currently no support for custom functions
+        clrErrors = true;
     }
 } 
 
@@ -385,12 +528,22 @@ void CacheLineReuseAnalysis::visitSExt(Instruction * inst) {
     OUTs[inst->getParent()][inst] = getMADs(inst->getOperand(0));
 }
 
+void CacheLineReuseAnalysis::visitZExt(Instruction * inst) {
+    // forwarding
+    OUTs[inst->getParent()][inst] = getMADs(inst->getOperand(0));
+}
+
 void CacheLineReuseAnalysis::visitTrunc(Instruction * inst) {
     // forwarding
     OUTs[inst->getParent()][inst] = getMADs(inst->getOperand(0));
 }
 
 void CacheLineReuseAnalysis::visitBitCast(Instruction * inst) {
+    // forwarding
+    OUTs[inst->getParent()][inst] = getMADs(inst->getOperand(0));
+}
+
+void CacheLineReuseAnalysis::visitAddrSpaceCast(Instruction * inst) {
     // forwarding
     OUTs[inst->getParent()][inst] = getMADs(inst->getOperand(0));
 }
@@ -412,7 +565,38 @@ void CacheLineReuseAnalysis::visitICmp(ICmpInst * inst) {
         case ICmpInst::Predicate::ICMP_SGE: visitBinaryOp(std::greater_equal<int>(), inst); break;
         case ICmpInst::Predicate::ICMP_SLT: visitBinaryOp(std::less<int>(), inst); break;
         case ICmpInst::Predicate::ICMP_SLE: visitBinaryOp(std::less_equal<int>(), inst); break;
-        default: errs() << "ERROR: Unsupported icmp predicate for instruction " << *inst << "\n";
+        default:
+            errs() << "ERROR: Unsupported icmp predicate for instruction " << *inst << "\n";
+            clrErrors = true;
+    }
+}
+
+void CacheLineReuseAnalysis::visitSelect(SelectInst * inst) {
+    std::vector<MemAccessDescriptor> preds = getMADs(inst->getCondition());
+    std::vector<MemAccessDescriptor> ops1 = getMADs(inst->getTrueValue());
+    std::vector<MemAccessDescriptor> ops2 = getMADs(inst->getFalseValue());
+    std::vector<MemAccessDescriptor> result;
+    for (MemAccessDescriptor pred : preds) {
+        for (MemAccessDescriptor op1 : ops1) {
+            for (MemAccessDescriptor op2 : ops2) {
+                result.push_back(pred.select(op1, op2));
+            }
+        }
+    }
+    OUTs[inst->getParent()][inst] = result;
+}
+
+void CacheLineReuseAnalysis::visitPhi(PHINode * inst) {
+    if (loopPhis.find(inst) == loopPhis.end()) {
+        // this PHI is not a forward declaration
+        // all values should be known and present
+        // loop-PHIs are handled elsewhere
+        std::vector<MemAccessDescriptor> result;
+        for (int i = 0; i < inst->getNumIncomingValues(); i++) {
+            std::vector<MemAccessDescriptor> op = getMADs(inst->getIncomingValue(i));
+            result.insert(result.end(), op.begin(), op.end());
+        }
+        OUTs[inst->getParent()][inst] = result;
     }
 }
 
@@ -427,10 +611,11 @@ std::vector<MemAccessDescriptor> CacheLineReuseAnalysis::getMADs(Value * v) {
         return std::vector<MemAccessDescriptor>();
     } else {
         errs() << "ERROR: Unknown operand type from value " << *v << "\n";
+        clrErrors = true;
         return std::vector<MemAccessDescriptor>();
     }
 }
 
 
 char CacheLineReuseAnalysis::ID = 0;
-static RegisterPass<CacheLineReuseAnalysis> X("clr", "Cache Line Re-Use Analysis Pass");
+static RegisterPass<CacheLineReuseAnalysis> X("clr", "Cache Line Re-Use Analysis Pass", false, true);
