@@ -138,7 +138,7 @@ bool CUDACoarseningPass::parseConfig()
     // Parse command line configuration
     m_dynamicMode = false;
     m_blockLevel = false;
-    
+
     if (CLCoarseningMode == "dynamic") {
         m_dynamicMode = true;
     }
@@ -154,7 +154,7 @@ bool CUDACoarseningPass::parseConfig()
     if (m_kernelName.empty() && !m_dynamicMode) {
         errs() << "CUDA Coarsening Pass Error: no kernel specified "
                << "(parameter: coarsened-kernel)\n";
-        
+
         return false;
     }
 
@@ -316,7 +316,7 @@ bool CUDACoarseningPass::handleHostCode(Module& M)
 void CUDACoarseningPass::generateVersions(Function& F, bool deviceCode)
 {
     std::vector<unsigned int> factors = {2, 4, 8, 16, 32};
-    std::vector<unsigned int> strides = {1, 2, 4, 8, 32};
+    std::vector<unsigned int> strides = {1, 2, 4, 8, 16, 32};
     std::vector<unsigned int> dimensions = {0};
 
     CallInst *cudaRegFuncCall = cudaRegistrationCallForKernel(*F.getParent(),
@@ -395,14 +395,14 @@ void CUDACoarseningPass::generateVersion(Function&     F,
     m_coarsenedKernelMap[cloned] = true;
 
     if (!deviceCode) {
-        GEPOperator *origGEP = 
+        GEPOperator *origGEP =
                     dyn_cast<GEPOperator>(cudaRegFuncCall->getOperand(2));
         llvm::GlobalVariable *origGKN =
                         dyn_cast<GlobalVariable>(origGEP->getOperand(0));
 
         StringRef knWithNull(kn.c_str(), kn.size() + 1);
 
-        llvm::Constant *ckn = 
+        llvm::Constant *ckn =
                      llvm::ConstantDataArray::getString(ctx, knWithNull, false);
 
         llvm::GlobalVariable *gkn = new llvm::GlobalVariable(
@@ -445,7 +445,7 @@ void CUDACoarseningPass::generateVersion(Function&     F,
         // is required there.
         return;
     }
-    
+
     unsigned int savedFactor = m_factor;
     unsigned int savedStride = m_stride;
     unsigned int savedDimension = m_dimension;
@@ -470,7 +470,7 @@ void CUDACoarseningPass::generateVersion(Function&     F,
 
     llvm::NamedMDNode *nvvmMetadataNode =
             F.getParent()->getOrInsertNamedMetadata("nvvm.annotations");
-    
+
     nvvmMetadataNode->addOperand(MDTuple::get(F.getContext(),
                                     operandsMD));
 
@@ -725,7 +725,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
                                          ConstantInt::get(builder.getInt64Ty(),
                                                           0));
     Value *valGridX = builder.CreateAlignedLoad(ptrGridX, 4);
-    Value *valScaledGridX = 
+    Value *valScaledGridX =
         builder.CreateUDiv(valGridX,
                            builder.CreateIntCast(argScaleGridX,
                                                  builder.getInt32Ty(),
@@ -739,7 +739,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
                                          ConstantInt::get(builder.getInt64Ty(),
                                                           1));
     Value *valGridY = builder.CreateAlignedLoad(ptrGridY, 4);
-    Value *valScaledGridY = 
+    Value *valScaledGridY =
         builder.CreateUDiv(valGridY,
                            builder.CreateIntCast(argScaleGridY,
                                                  builder.getInt32Ty(),
@@ -748,7 +748,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
 
     // Scale grid Z
     Value *valGridZ = builder.CreateAlignedLoad(localGridZ, 8);
-    Value *valScaledGridZ = 
+    Value *valScaledGridZ =
         builder.CreateUDiv(valGridZ,
                            builder.CreateIntCast(argScaleGridZ,
                                                  builder.getInt32Ty(),
@@ -762,7 +762,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
                                           ConstantInt::get(builder.getInt64Ty(),
                                                            0));
     Value *valBlockX = builder.CreateAlignedLoad(ptrBlockX, 4);
-    Value *valScaledBlockX = 
+    Value *valScaledBlockX =
         builder.CreateUDiv(valBlockX,
                            builder.CreateIntCast(argScaleBlockX,
                                                  builder.getInt32Ty(),
@@ -776,7 +776,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
                                           ConstantInt::get(builder.getInt64Ty(),
                                                            1));
     Value *valBlockY = builder.CreateAlignedLoad(ptrBlockY, 4);
-    Value *valScaledBlockY = 
+    Value *valScaledBlockY =
         builder.CreateUDiv(valBlockY,
                            builder.CreateIntCast(argScaleBlockY,
                                                  builder.getInt32Ty(),
@@ -785,7 +785,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
 
     // Scale BLOCK Z
     Value *valBlockZ = builder.CreateAlignedLoad(localBlockZ, 8);
-    Value *valScaledBlockZ = 
+    Value *valScaledBlockZ =
         builder.CreateUDiv(valBlockZ,
                            builder.CreateIntCast(argScaleBlockZ,
                                                  builder.getInt32Ty(),
@@ -801,7 +801,7 @@ void CUDACoarseningPass::insertRPCLaunchKernel(Module& M)
     Value *c_localSharedMemory =
                         builder.CreateAlignedLoad(localSharedMemory, 8, "c_sm");
     Value *c_localCudaStream =
-                         builder.CreateAlignedLoad(localCudaStream, 8, "c_scs"); 
+                         builder.CreateAlignedLoad(localCudaStream, 8, "c_scs");
 
     SmallVector<Value *, 8> callArgs;
     callArgs.push_back(c_localPtr);
