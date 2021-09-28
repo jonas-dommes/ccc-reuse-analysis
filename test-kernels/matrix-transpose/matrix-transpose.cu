@@ -206,15 +206,17 @@ int main(int argc, char **argv)
     }
 
     // host
-    for (int j = 0; j < ny; j++)
-        for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
             h_idata[j*nx + i] = j*nx + i;
-
+        }
+    }
     // correct result for error checking
-    for (int j = 0; j < ny; j++)
-        for (int i = 0; i < nx; i++)
+    for (int j = 0; j < ny; j++) {
+        for (int i = 0; i < nx; i++) {
             gold[j*nx + i] = h_idata[i*nx + j];
-
+        }
+    }
     // device
     checkCuda( cudaMemcpy(d_idata, h_idata, mem_size, cudaMemcpyHostToDevice) );
 
