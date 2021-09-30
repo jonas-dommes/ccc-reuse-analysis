@@ -55,8 +55,8 @@ void postprocess(const float *ref, const float *res, int n, float ms) {
 		}
 	}
 	if (passed) {
-		printf("Time in ms: %6.3f\n", ms );
-		// printf("%20.2f\n", 2 * n * sizeof(float) * 1e-6 * NUM_REPS / ms );
+		printf("Runtime: %6.3f ms\t", ms );
+		printf("Bandwidth: %8.2f GB/s\n", 2 * n * sizeof(float) * 1e-6 * NUM_REPS / ms );
 	}
 }
 
