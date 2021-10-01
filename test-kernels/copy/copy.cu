@@ -84,6 +84,20 @@ __global__ void copy_array(float *odata, const float *idata, int work_per_thread
 	// if(tid == PRINT_IDX) printf("odata[%d]: %f\n", PRINT_IDX, odata[PRINT_IDX]);
 }
 
+__global__ void memcpyByCols(float *idata, float *odata, unsigned int size) {
+	int globalId = blockIdx.x * blockDim.x + threadIdx.x;
+	for (unsigned int idx = 0; idx < size; idx++) {
+		odata[globalId * size + idx] = idata[globalId * size + idx];
+	}
+}
+
+__global__ void memcpyByRows(float *idata, float *odata, unsigned int size) {
+	int globalId = blockIdx.x * blockDim.x + threadIdx.x;
+	for (unsigned int idx = 0; idx < size; idx++) {
+		odata[idx * size + globalId] = idata[idx * size + globalId];
+	}
+}
+
 void print_args(int argc, char **argv) {
 	if (argc != 4) {
 		printf("Error: Format should be: ./copy num_blocks threads_per_block work_per_thread \n");
@@ -140,8 +154,8 @@ int main(int argc, char **argv) {
 	checkCuda(cudaEventRecord(startEvent, 0));
 	copy_array<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
 	checkCuda(cudaEventRecord(stopEvent, 0));
-    checkCuda(cudaEventSynchronize(stopEvent));
-    checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+	checkCuda(cudaEventSynchronize(stopEvent));
+	checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
 	checkCuda(cudaMemcpy(h_odata, d_odata, data_size * sizeof(float), cudaMemcpyDeviceToHost));
 
 	// Analyse
