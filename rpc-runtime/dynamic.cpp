@@ -156,7 +156,7 @@ const void rpcRegisterFunction(void       **fatCubinHandle,
 
     std::string name = demangle(deviceFun);
     name = nameFromDemangled(name);
-    // printf("Registering %s\n", name.c_str());
+    	// printf("Registering %s\n", name.c_str());
 
     nameKernelMap[name] = hostFun;
 
