@@ -28,7 +28,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define NUM_REPS 1
 
 // Convenience function for checking CUDA runtime API results
 // can be wrapped around any runtime API call. No-op in release builds.
@@ -56,32 +55,20 @@ void postprocess(const float *ref, const float *res, int n, float ms) {
 	}
 	if (passed) {
 		printf("Runtime: %6.3f ms\t", ms );
-		printf("Bandwidth: %8.2f GB/s\n", 2 * n * sizeof(float) * 1e-6 * NUM_REPS / ms );
+		printf("Bandwidth: %8.2f GB/s\n", 2 * n * sizeof(float) * 1e-6 / ms );
 	}
 }
 
-#define PRINT_IDX 132
-/* Kernel to copy 1 dimensional array
-*  int work_per_thread  number of datapoints each thread works
-*/
+// Kernel to copy 1 dimensional array
+// int work_per_thread  number of datapoints each thread works
 __global__ void copy_array(float *odata, const float *idata, int work_per_thread) {
 
 	int tid = blockIdx.x * blockDim.x * work_per_thread + threadIdx.x;
-	// printf("%2d tid: %d\n", blockIdx.x, tid);
-
-	// if(tid == PRINT_IDX) printf("blockIdx.x=%d   blockDim.x=%d   gridDim.x=%d   threadIdx.x=%d \n", blockIdx.x, blockDim.x, gridDim.x, threadIdx.x);
-
-	// if(tid == PRINT_IDX) printf("idata[%d]: %f\n", PRINT_IDX, idata[PRINT_IDX]);
 
 	for (int i = 0; i < work_per_thread; i++) {
 		int index = i * blockDim.x + tid;
 		odata[index] = idata[index];
-
-		// if(tid == PRINT_IDX) printf("i: %d   index: %d\n", i, index);
-
 	}
-
-	// if(tid == PRINT_IDX) printf("odata[%d]: %f\n", PRINT_IDX, odata[PRINT_IDX]);
 }
 
 __global__ void memcpyByCols(float *idata, float *odata, unsigned int size) {
@@ -110,7 +97,6 @@ void print_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-
 	// Handle and print arguments
 	print_args(argc, argv);
 	int num_blocks = atoi(argv[1]);
@@ -130,8 +116,8 @@ int main(int argc, char **argv) {
 	float *h_odata = (float*) calloc(data_size, sizeof(float));
 	float *original_idata = (float*) calloc(data_size, sizeof(float));
 
+	// Initiallize random data
 	srand(42);
-
 	for (int i = 0; i < data_size; i++) {
 		h_idata[i] = ((float) rand()/(float) (RAND_MAX)) * 10;
 		original_idata[i] = h_idata[i];
