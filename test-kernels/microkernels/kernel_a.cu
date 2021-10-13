@@ -28,10 +28,27 @@
 #include <stdio.h>
 #include <assert.h>
 
+__global__ void kernel_a(float *odata, const float *idata, int work_per_thread) {
+
+	int offset = blockIdx.x * blockDim.x * work_per_thread + threadIdx.x;
+
+	for (int i = 0; i < work_per_thread; i++) {
+		int index = i * blockDim.x + offset;
+		odata[index] = idata[index] * idata[index] - 1;
+	}
+
+	if (offset < 32) {
+		odata[offset] = -odata[offset] // TODO: *(-1)?
+		// Alternative: Reduce to one datapoint?
+	}
+}
+
+
 
 // Convenience function for checking CUDA runtime API results
 // can be wrapped around any runtime API call. No-op in release builds.
 inline cudaError_t checkCuda(cudaError_t result) {
+
 	#if defined(DEBUG) || defined(_DEBUG)
 	if (result != cudaSuccess) {
 		fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
@@ -51,4 +68,58 @@ int check_result(const float *reference, const float *result, int n) {
 		}
 	}
 	return 0;
+}
+
+void print_args(int argc, char **argv) {
+
+	if (argc != 4) {
+		printf("Error: Format should be: ./copy num_blocks threads_per_block work_per_thread \n");
+		exit(1);
+	} else {
+		printf("num_blocks        = %d\n", atoi(argv[1]));
+		printf("threads_per_block = %d\n", atoi(argv[2]));
+		printf("work_per_thread   = %d\n", atoi(argv[3]));
+	}
+}
+
+// Initiallize array with random float between 0 and 10
+void init_random(float *array, int n) {
+
+	srand(42);
+
+	for (int i = 0; i < n; i++) {
+		array[i] = ((float) rand()/(float) (RAND_MAX)) * 10;
+	}
+}
+
+int main(int argc, char **argv) {
+
+	// Handle and print arguments
+	print_args(argc, argv);
+	int num_blocks = atoi(argv[1]);
+	int threads_per_block = atoi(argv[2]);
+	int work_per_thread = atoi(argv[3]);
+
+	int data_points = num_blocks * threads_per_block * work_per_thread;
+	printf("data_points = %d\n", data_points);
+	printf("num_threads = %d\n", num_blocks * threads_per_block);
+
+	// Prepare Kernel dimensions
+	dim3 dimGrid(num_blocks, 1, 1);
+	dim3 dimBlock(threads_per_block, 1, 1);
+
+	// Prepare host data structures
+
+	// Initiallize input array
+
+	// Prepare device data structures
+
+	// Events for timing
+
+	// Run Kernel
+
+	// Analyse
+
+	// Cleanup
+
 }
