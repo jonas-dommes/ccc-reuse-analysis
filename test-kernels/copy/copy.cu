@@ -29,12 +29,14 @@
 #include <assert.h>
 
 
+#define DEBUG 1
+
 // Convenience function for checking CUDA runtime API results
 // can be wrapped around any runtime API call. No-op in release builds.
 inline cudaError_t checkCuda(cudaError_t result) {
 	#if defined(DEBUG) || defined(_DEBUG)
 	if (result != cudaSuccess) {
-		fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
+		fprintf(stderr, "\n#### CUDA Runtime Error: %s\n\n", cudaGetErrorString(result));
 		assert(result == cudaSuccess);
 	}
 	#endif
@@ -139,6 +141,7 @@ int main(int argc, char **argv) {
 	// Run Kernel
 	checkCuda(cudaEventRecord(startEvent, 0));
 	copy_array<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
+	checkCuda(cudaGetLastError());
 	checkCuda(cudaEventRecord(stopEvent, 0));
 	checkCuda(cudaEventSynchronize(stopEvent));
 	checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
