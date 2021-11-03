@@ -29,9 +29,11 @@
 #include <assert.h>
 #include <time.h>
 
-#define DEBUG 1
-#define eps 10e-6
+#include "utility.h"
 
+#define DEBUG 1
+
+// Data reuse of first few entries
 __global__ void kernel_a(float *odata, const float *idata, int work_per_thread) {
 
 	int offset = blockIdx.x * blockDim.x * work_per_thread + threadIdx.x;
@@ -42,59 +44,28 @@ __global__ void kernel_a(float *odata, const float *idata, int work_per_thread) 
 	}
 
 	if (offset < 32) {
-		odata[offset] = -odata[offset]; // TODO: *(-1)?
-		// Alternative: Reduce to one datapoint?
+		odata[offset] = -odata[offset];
 	}
 }
 
+// Using data multiple times
+__global__ void kernel_b(float *odata, const float *idata, int work_per_thread) {
 
-// Convenience function for checking CUDA runtime API results
-// can be wrapped around any runtime API call. No-op in release builds.
-inline cudaError_t checkCuda(cudaError_t result) {
+	int offset = blockIdx.x * blockDim.x * work_per_thread + threadIdx.x;
 
-	#if defined(DEBUG) || defined(_DEBUG)
-	if (result != cudaSuccess) {
-		fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
-		assert(result == cudaSuccess);
+	for (int i = 0; i < work_per_thread; i++) {
+		int index = i * blockDim.x + offset;
+		odata[index] = idata[index] * idata[index] - 1;
+		odata[index] += odata[index] * idata[index] - 1;
 	}
-	#endif
-	return result;
-}
 
-// Check result for errors, return 1 if result differs
-int check_result(const float *reference, const float *result, int n) {
-
-	for (int i = 0; i < n; i++) {
-		if (abs(reference[i] - result[i]) > eps) {
-			printf("Wrong result: reference[%d] = %.20f\n", i, reference[i]);
-			printf("Wrong result:    result[%d] = %.20f\n",i, result[i]);
-			return i;
-		}
-	}
-	return -1;
-}
-
-void print_args(int argc, char **argv) {
-
-	if (argc != 4) {
-		printf("Error: Format should be: ./copy num_blocks threads_per_block work_per_thread \n");
-		exit(1);
-	} else {
-		printf("num_blocks        = %d\n", atoi(argv[1]));
-		printf("threads_per_block = %d\n", atoi(argv[2]));
-		printf("work_per_thread   = %d\n", atoi(argv[3]));
+	if (offset < 32) {
+		odata[offset] = -odata[offset];
 	}
 }
 
-// Initiallize array with random float between 0 and 10
-void init_random(float *array, int n) {
+// Use shared memory
 
-	srand(42);
-
-	for (int i = 0; i < n; i++) {
-		array[i] = ((float) rand()/(float) (RAND_MAX)) * 10;
-	}
-}
 
 int main(int argc, char **argv) {
 
@@ -115,26 +86,26 @@ int main(int argc, char **argv) {
 	// Prepare host data structures
 	float *h_idata = (float*) calloc(data_points, sizeof(float));
 	float *h_odata = (float*) calloc(data_points, sizeof(float));
-	float *reference = (float*) calloc(data_points, sizeof(float));
 
 	// Initiallize input array
 	init_random(h_idata, data_points);
 
-	// Calculate reference
-	clock_t begin = clock();
-
-	for (int i = 0; i < data_points; i++) {
-		reference[i] = h_idata[i] * h_idata[i] - 1;
-	}
-
-	for (int i = 0; i < 32; i++) {
-		reference[i] = -reference[i]; // TODO: *(-1)?
-		// Alternative: Reduce to one datapoint?
-	}
-
-	clock_t end = clock();
-	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC * 1000;
-	printf("Calculated reference in %.5f ms\n", time_spent);
+	// // Calculate reference
+	// float *reference = (float*) calloc(data_points, sizeof(float));
+	//
+	// clock_t begin = clock();
+	//
+	// for (int i = 0; i < data_points; i++) {
+	// 	reference[i] = h_idata[i] * h_idata[i] - 1;
+	// 	reference[i] += reference[i] * h_idata[i] - 1;
+	// }
+	//
+	// for (int i = 0; i < 32; i++) {
+	// 	reference[i] = -reference[i];
+	//
+	// clock_t end = clock();
+	// double time_spent = (double)(end - begin) / CLOCKS_PER_SEC * 1000;
+	// printf("Calculated reference in %.5f ms\n", time_spent);
 
 	// Prepare device data structures
 	float *d_idata, *d_odata;
@@ -143,35 +114,45 @@ int main(int argc, char **argv) {
 	checkCuda(cudaMemcpy(d_idata, h_idata, data_points * sizeof(float), cudaMemcpyHostToDevice));
 	checkCuda(cudaMemset(d_odata, 0, data_points * sizeof(float)));
 
-	// Events for timing
-	cudaEvent_t startEvent, stopEvent;
-	checkCuda(cudaEventCreate(&startEvent));
-	checkCuda(cudaEventCreate(&stopEvent));
-	float ms;
+	// // Events for timing
+	// cudaEvent_t startEvent, stopEvent;
+	// checkCuda(cudaEventCreate(&startEvent));
+	// checkCuda(cudaEventCreate(&stopEvent));
+	// float ms;
 
-	// Run Kernel
-	checkCuda(cudaEventRecord(startEvent, 0));
+	// Run Kernel a
+	// checkCuda(cudaEventRecord(startEvent, 0));
 	kernel_a<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
 	checkCuda(cudaGetLastError());
-	checkCuda(cudaEventRecord(stopEvent, 0));
-	checkCuda(cudaEventSynchronize(stopEvent));
-	checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+	// checkCuda(cudaEventRecord(stopEvent, 0));
+	// checkCuda(cudaEventSynchronize(stopEvent));
+	// checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
 	checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(float), cudaMemcpyDeviceToHost));
 
+	// Run Kernel b
+	// checkCuda(cudaEventRecord(startEvent, 0));
+	kernel_b<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
+	checkCuda(cudaGetLastError());
+	// checkCuda(cudaEventRecord(stopEvent, 0));
+	// checkCuda(cudaEventSynchronize(stopEvent));
+	// checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
+	checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(float), cudaMemcpyDeviceToHost));
+
+
 	// Analyse
-	int is_correct = check_result(reference, h_odata, data_points);
-	if (is_correct != -1) {
-		printf("Wrong result:    h_idata[%d] = %.20f\n\n",is_correct, h_idata[is_correct]);
-	} else {
-		printf("Correct result after %.5f ms\n", ms);
-	}
+	// int is_correct = check_result(reference, h_odata, data_points);
+	// if (is_correct != -1) {
+	// 	printf("Wrong result:   h_idata[%d] = %.20f\n\n",is_correct, h_idata[is_correct]);
+	// } else {
+	// 	printf("Correct result after %.5f ms\n", ms);
+	// }
 
 	// Cleanup
-	checkCuda(cudaEventDestroy(startEvent));
-	checkCuda(cudaEventDestroy(stopEvent));
+	// checkCuda(cudaEventDestroy(startEvent));
+	// checkCuda(cudaEventDestroy(stopEvent));
 	checkCuda(cudaFree(d_idata));
 	checkCuda(cudaFree(d_odata));
 	free(h_idata);
 	free(h_odata);
-	free(reference);
+	// free(reference);
 }
