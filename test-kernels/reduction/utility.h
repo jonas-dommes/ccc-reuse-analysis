@@ -45,12 +45,12 @@ void print_args(int argc, char **argv) {
 }
 
 // Initiallize array with random float between 0 and 10
-void init_random(float *array, int n) {
+void init_random_int(int *array, int n) {
 
 	srand(42);
 
 	for (int i = 0; i < n; i++) {
-		array[i] = ((float) rand()/(float) (RAND_MAX)) * 10;
+		array[i] = (rand()/ (RAND_MAX)) * 10;
 	}
 }
 
