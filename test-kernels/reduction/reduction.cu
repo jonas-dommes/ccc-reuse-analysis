@@ -34,14 +34,14 @@
 #define DEBUG 1
 
 // Naive reduce (interleaved addressing)
-__global__ void reduce1(int *g_idata, int *g_odata) {
+__global__ void reduce1(int *d_idata, int *d_odata) {
 
 	extern __shared__ int sdata[];
 
 	// each thread loads one element from global to shared mem
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = g_idata[i];
+	sdata[tid] = d_idata[i];
 	__syncthreads();
 
 	// do reduction in shared mem
@@ -53,19 +53,19 @@ __global__ void reduce1(int *g_idata, int *g_odata) {
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
 }
 
 
 // strided indexing for non-divergent branching (interleaved addressing) --> Bank conflicts
-__global__ void reduce2(int *g_idata, int *g_odata) {
+__global__ void reduce2(int *d_idata, int *d_odata) {
 
 	extern __shared__ int sdata[];
 
 	// each thread loads one element from global to shared mem
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = g_idata[i];
+	sdata[tid] = d_idata[i];
 	__syncthreads();
 
 	// do reduction in shared mem
@@ -78,19 +78,19 @@ __global__ void reduce2(int *g_idata, int *g_odata) {
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
 }
 
 
 // Sequential Addressing
-__global__ void reduce3(int *g_idata, int *g_odata) {
+__global__ void reduce3(int *d_idata, int *d_odata) {
 
 	extern __shared__ int sdata[];
 
 	// each thread loads one element from global to shared mem
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = g_idata[i];
+	sdata[tid] = d_idata[i];
 	__syncthreads();
 
 	// do reduction in shared mem
@@ -102,7 +102,7 @@ __global__ void reduce3(int *g_idata, int *g_odata) {
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
 }
 
 
@@ -116,16 +116,16 @@ __device__ void warpReduce(volatile int* sdata, int tid) {
 }
 
 
-// First Add during load and unroll last Warp
-__global__ void reduce4(int *g_idata, int *g_odata) {
+// Unroll last Warp
+__global__ void reduce4(int *d_idata, int *d_odata) {
 
 	extern __shared__ int sdata[];
 
 	// perform first level of reduction,
 	// reading from global memory, writing to shared memory
 	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x*(blockDim.x*2) + threadIdx.x;
-	sdata[tid] = g_idata[i] + g_idata[i+blockDim.x];
+	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+	sdata[tid] = d_idata[i];
 	__syncthreads();
 
 	// do reduction in shared mem
@@ -138,96 +138,92 @@ __global__ void reduce4(int *g_idata, int *g_odata) {
 	if (tid < 32) warpReduce(sdata, tid);
 
 	// write result for this block to global mem
-	if (tid == 0) g_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
 }
+
+// // First Add during load and unroll last Warp
+// __global__ void reduce4(int *d_idata, int *d_odata) {
+//
+// 	extern __shared__ int sdata[];
+//
+// 	// perform first level of reduction,
+// 	// reading from global memory, writing to shared memory
+// 	unsigned int tid = threadIdx.x;
+// 	unsigned int i = blockIdx.x*(blockDim.x*2) + threadIdx.x;
+// 	sdata[tid] = d_idata[i] + d_idata[i+blockDim.x];
+// 	__syncthreads();
+//
+// 	// do reduction in shared mem
+// 	for (unsigned int s=blockDim.x/2; s>32; s>>=1) {
+// 		if (tid < s)
+// 		sdata[tid] += sdata[tid + s];
+// 		__syncthreads();
+// 	}
+//
+// 	if (tid < 32) warpReduce(sdata, tid);
+//
+// 	// write result for this block to global mem
+// 	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
+// }
 
 
 int main(int argc, char **argv) {
 
-	// Handle and print arguments
-	print_args(argc, argv);
-	int num_blocks = atoi(argv[1]);
-	int threads_per_block = atoi(argv[2]);
-	int work_per_thread = atoi(argv[3]);
+	int num_kernels = 4;
+	int num_runs = 3
+	int num_blockdims = 4
+	int data_points[num_runs] = {131072, 1048576, 2097152}; // biggest last
+	int blocksize[num_blockdims] = {128, 356, 512, 1024}
 
-	int data_points = num_blocks * threads_per_block * work_per_thread;
-	printf("data_points = %d\n", data_points);
-	printf("num_threads = %d\n", num_blocks * threads_per_block);
+	// Prepare host data
+	int *h_idata = (int*) calloc(data_points[num_runs-1], sizeof(int));
+	int *h_odata = (int*) calloc(num_kernels, sizeof(int));
+	init_random_int(h_idata, data_points[num_runs-1]);
 
-	// Prepare Kernel dimensions
-	dim3 dimGrid(num_blocks, 1, 1);
-	dim3 dimBlock(threads_per_block, 1, 1);
+	for (size_t i = 0; i < num_runs; i++) {
+		for (size_t j = 0; j < num_blockdims; j++) {
 
-	// Prepare host data structures
-	float *h_idata = (float*) calloc(data_points, sizeof(float));
-	float *h_odata = (float*) calloc(data_points, sizeof(float));
+			// Prepare Kernel dimensions
+			dim3 dimGrid(data_points[i] / blocksize[j], 1, 1);
+			dim3 dimBlock(blocksize[j], 1, 1);
 
-	// Initiallize input array
-	init_random(h_idata, data_points);
+			// Prepare device data structures
+			float *d_idata, *d_odata;
+			checkCuda(cudaMalloc(&d_idata, data_points[i] * sizeof(int)));
+			checkCuda(cudaMalloc(&d_odata, num_kernels * sizeof(int)));
+			checkCuda(cudaMemcpy(d_idata, h_idata, data_points[i] * sizeof(int), cudaMemcpyHostToDevice));
+			checkCuda(cudaMemset(d_odata, 0, data_points[i] * sizeof(int)));
 
-	// // Calculate reference
-	// float *reference = (float*) calloc(data_points, sizeof(float));
-	//
-	// clock_t begin = clock();
-	//
-	// for (int i = 0; i < data_points; i++) {
-	// 	reference[i] = h_idata[i] * h_idata[i] - 1;
-	// 	reference[i] += reference[i] * h_idata[i] - 1;
-	// }
-	//
-	// for (int i = 0; i < 32; i++) {
-	// 	reference[i] = -reference[i];
-	//
-	// clock_t end = clock();
-	// double time_spent = (double)(end - begin) / CLOCKS_PER_SEC * 1000;
-	// printf("Calculated reference in %.5f ms\n", time_spent);
+			reduce1<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			checkCuda(cudaGetLastError());
 
-	// Prepare device data structures
-	float *d_idata, *d_odata;
-	checkCuda(cudaMalloc(&d_idata, data_points * sizeof(float)));
-	checkCuda(cudaMalloc(&d_odata, data_points * sizeof(float)));
-	checkCuda(cudaMemcpy(d_idata, h_idata, data_points * sizeof(float), cudaMemcpyHostToDevice));
-	checkCuda(cudaMemset(d_odata, 0, data_points * sizeof(float)));
+			reduce2<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			checkCuda(cudaGetLastError());
 
-	// // Events for timing
-	// cudaEvent_t startEvent, stopEvent;
-	// checkCuda(cudaEventCreate(&startEvent));
-	// checkCuda(cudaEventCreate(&stopEvent));
-	// float ms;
+			reduce3<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			checkCuda(cudaGetLastError());
 
-	// Run Kernel a
-	// checkCuda(cudaEventRecord(startEvent, 0));
-	kernel_a<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
-	checkCuda(cudaGetLastError());
-	// checkCuda(cudaEventRecord(stopEvent, 0));
-	// checkCuda(cudaEventSynchronize(stopEvent));
-	// checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-	checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(float), cudaMemcpyDeviceToHost));
-
-	// Run Kernel b
-	// checkCuda(cudaEventRecord(startEvent, 0));
-	kernel_b<<<dimGrid, dimBlock>>>(d_odata, d_idata, work_per_thread);
-	checkCuda(cudaGetLastError());
-	// checkCuda(cudaEventRecord(stopEvent, 0));
-	// checkCuda(cudaEventSynchronize(stopEvent));
-	// checkCuda(cudaEventElapsedTime(&ms, startEvent, stopEvent));
-	checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(float), cudaMemcpyDeviceToHost));
+			reduce4<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			checkCuda(cudaGetLastError());
 
 
-	// Analyse
-	// int is_correct = check_result(reference, h_odata, data_points);
-	// if (is_correct != -1) {
-	// 	printf("Wrong result:   h_idata[%d] = %.20f\n\n",is_correct, h_idata[is_correct]);
-	// } else {
-	// 	printf("Correct result after %.5f ms\n", ms);
-	// }
+			checkCuda(cudaMemcpy(h_odata, d_odata, num_kernels * sizeof(int), cudaMemcpyDeviceToHost));
 
-	// Cleanup
-	// checkCuda(cudaEventDestroy(startEvent));
-	// checkCuda(cudaEventDestroy(stopEvent));
-	checkCuda(cudaFree(d_idata));
-	checkCuda(cudaFree(d_odata));
+
+			int value = h_odata[0];
+			for (size_t i = 1; i < num_kernels; i++) {
+				if (h_odata[i] != value) {
+					printf("\nERROR:Not same result (%d) for kernel %d\n\n", h_odata[i], i);
+				}
+				value = h_odata[i];
+			}
+
+			checkCuda(cudaFree(d_idata));
+			checkCuda(cudaFree(d_odata));
+		}
+
+		memset(h_odata, 0, num_kernels * sizeof(int));
+	}
 	free(h_idata);
 	free(h_odata);
-	// free(reference);
 }
