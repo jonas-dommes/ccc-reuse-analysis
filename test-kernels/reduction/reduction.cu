@@ -53,8 +53,18 @@ __global__ void reduce1(int *d_idata, int *d_odata) {
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
-}
+	if (tid == 0)  {
+		d_odata[blockIdx.x] = sdata[0];
+
+		// Recursively call kernel
+		if (blockIdx.x == 0) {
+			if (gridDim.x >= blockDim.x) {
+				reduce1<<<gridDim.x / blockDim.x, blockdim.x>>>(d_idata, d_odata);
+			} else if (gridDim.x > 1) {
+				reduce1<<<1, gridDim.x>>>(d_idata, d_odata);
+			}
+		}
+	}
 
 
 // strided indexing for non-divergent branching (interleaved addressing) --> Bank conflicts
@@ -169,60 +179,67 @@ __global__ void reduce4(int *d_idata, int *d_odata) {
 
 int main(int argc, char **argv) {
 
-	int num_kernels = 4;
-	int num_runs = 3
-	int num_blockdims = 4
-	int data_points[num_runs] = {131072, 1048576, 2097152}; // biggest last
-	int blocksize[num_blockdims] = {128, 356, 512, 1024}
+	int num_kernels = 1;
+	int num_runs = 1;
+	int num_blockdims = 1;
+	int data_points[num_runs] = {1024}; // biggest last
+	int blockdims[num_blockdims] = {1024};
+	// int data_points[num_runs] = {2097152}; // biggest last
+	// int blockdims[num_blockdims] = {128};
+
+	// int num_kernels = 4;
+	// int num_runs = 3;
+	// int num_blockdims = 4;
+	// int data_points[num_runs] = {131072, 1048576, 2097152}; // biggest last
+	// int blockdims[num_blockdims] = {128, 356, 512, 1024};
 
 	// Prepare host data
 	int *h_idata = (int*) calloc(data_points[num_runs-1], sizeof(int));
-	int *h_odata = (int*) calloc(num_kernels, sizeof(int));
+	int *h_odata = (int*) calloc(data_points[num_runs-1], sizeof(int));
 	init_random_int(h_idata, data_points[num_runs-1]);
+
+	// Calculate reference
+	int sum = calc_reference_reduce(h_idata, data);
 
 	for (size_t i = 0; i < num_runs; i++) {
 		for (size_t j = 0; j < num_blockdims; j++) {
 
 			// Prepare Kernel dimensions
-			dim3 dimGrid(data_points[i] / blocksize[j], 1, 1);
-			dim3 dimBlock(blocksize[j], 1, 1);
+			dim3 dimGrid(data_points[i] / blockdims[j], 1, 1);
+			dim3 dimBlock(blockdims[j], 1, 1);
 
 			// Prepare device data structures
 			float *d_idata, *d_odata;
 			checkCuda(cudaMalloc(&d_idata, data_points[i] * sizeof(int)));
-			checkCuda(cudaMalloc(&d_odata, num_kernels * sizeof(int)));
+			checkCuda(cudaMalloc(&d_odata, data_points[i] * sizeof(int)));
 			checkCuda(cudaMemcpy(d_idata, h_idata, data_points[i] * sizeof(int), cudaMemcpyHostToDevice));
 			checkCuda(cudaMemset(d_odata, 0, data_points[i] * sizeof(int)));
 
 			reduce1<<<dimGrid, dimBlock>>>(d_idata, d_odata);
 			checkCuda(cudaGetLastError());
 
-			reduce2<<<dimGrid, dimBlock>>>(d_idata, d_odata);
-			checkCuda(cudaGetLastError());
 
-			reduce3<<<dimGrid, dimBlock>>>(d_idata, d_odata);
-			checkCuda(cudaGetLastError());
-
-			reduce4<<<dimGrid, dimBlock>>>(d_idata, d_odata);
-			checkCuda(cudaGetLastError());
-
-
-			checkCuda(cudaMemcpy(h_odata, d_odata, num_kernels * sizeof(int), cudaMemcpyDeviceToHost));
+			// reduce2<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			// checkCuda(cudaGetLastError());
+			//
+			// reduce3<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			// checkCuda(cudaGetLastError());
+			//
+			// reduce4<<<dimGrid, dimBlock>>>(d_idata, d_odata);
+			// checkCuda(cudaGetLastError());
 
 
-			int value = h_odata[0];
-			for (size_t i = 1; i < num_kernels; i++) {
-				if (h_odata[i] != value) {
-					printf("\nERROR:Not same result (%d) for kernel %d\n\n", h_odata[i], i);
-				}
-				value = h_odata[i];
+			checkCuda(cudaMemcpy(h_odata, d_odata, data_points[i] * sizeof(int), cudaMemcpyDeviceToHost));
+
+			if (sum != h_odata[0]) {
+				printf("Reference= %d\nResult   = %d", sum, h_odata[0]);
 			}
 
 			checkCuda(cudaFree(d_idata));
 			checkCuda(cudaFree(d_odata));
 		}
 
-		memset(h_odata, 0, num_kernels * sizeof(int));
+		// memset(h_odata, 0, data_points[i] * sizeof(int));
 	}
 	free(h_idata);
 	free(h_odata);
