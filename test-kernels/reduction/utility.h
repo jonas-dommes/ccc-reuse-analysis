@@ -5,17 +5,18 @@
 #include <assert.h>
 
 #define eps 10e-3
+// #define DEBUG 1
 
 // Convenience function for checking CUDA runtime API results
 // can be wrapped around any runtime API call. No-op in release builds.
 inline cudaError_t checkCuda(cudaError_t result) {
 
-	#if defined(DEBUG) || defined(_DEBUG)
+	// #if defined(DEBUG) || defined(_DEBUG)
 	if (result != cudaSuccess) {
 		fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
 		assert(result == cudaSuccess);
 	}
-	#endif
+	// #endif
 	return result;
 }
 
@@ -50,7 +51,7 @@ void init_random_int(int *array, int n) {
 	srand(42);
 
 	for (int i = 0; i < n; i++) {
-		array[i] = (rand()/ (RAND_MAX)) * 10;
+		array[i] = (int)(((float) rand()/ (float)(RAND_MAX)) * 10);
 	}
 }
 
