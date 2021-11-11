@@ -55,4 +55,15 @@ void init_random_int(int *array, int n) {
 }
 
 
+int calc_reference_reduce(int *array, int n) {
+
+	int sum = 0;
+	for (size_t i = 0; i < n; i++) {
+		sum += array[i];
+	}
+
+	return sum;
+}
+
+
 #endif
