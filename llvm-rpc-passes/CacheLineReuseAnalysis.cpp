@@ -70,7 +70,7 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
     m_kernelName = CLKernelName;
     m_dynamicMode = CLCoarseningMode == "dynamic";
     bool hostCode = F.getParent()->getTargetTriple() != CUDA_TARGET_TRIPLE;
-    
+
     if(hostCode || (!Util::shouldCoarsen(F, m_kernelName, hostCode, m_dynamicMode))) {
         return false;
     }
@@ -103,7 +103,7 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
         }
     }*/
 
-    
+
 
     ReversePostOrderTraversal<Function*> RPOT(&F); // Expensive to create
     for (auto I = RPOT.begin(); I != RPOT.end(); ++I) {
@@ -145,8 +145,8 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
           errs() << *memop << "\n";
         }
         errs() << "There are " << relevantInstructions.size() << " relevant instructions\n";
-  
-        // do a bit of printing 
+
+        // do a bit of printing
         for (BasicBlock &B : F) {
             errs() << "Basic block " << B.getName() << " has " << B.size() << " instructions\n";
             for (Instruction &I: B) {
@@ -159,7 +159,7 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
         AnalysisPlanNode node = *worklist.begin();
         worklist.erase(worklist.begin());
         //errs() << node.loopIteration << " || " << node.isLoopHeader << " >> " << node.block->getName() << "\n";
-        
+
         std::map<Instruction*, std::vector<MemAccessDescriptor>> ins;
         INs[node.block] = ins;
         for (BasicBlock *pred : predecessors(node.block)) {
@@ -188,18 +188,18 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
                         // loop var initialisation value
                         INs[node.block][&phi] = getMADs(phi.getIncomingValue(initIdx));
                     } else {
-                        // loop var update value should have been copied from pred block 
+                        // loop var update value should have been copied from pred block
                         INs[node.block][&phi] = INs[node.block][cast<Instruction>(phi.getIncomingValue(stepIdx))];
                     }
                 }
             }
-            
+
         }
         OUTs[node.block] = INs[node.block]; // using OUTs as the working set
 
         visitBB(node.block);
     }
-    
+
     return false;
 }
 
@@ -239,13 +239,15 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
                     //    def = dyn_cast<Instruction>(def->getOperand(0));
                     //}
                     defs.insert(def);
-                    #ifdef DEBUG_PRINT
-                        errs () << "preprocessed " << *def << "\n";
-                    #endif
 
                     // Step 1.c Initialise empty map for later use
                     // This logic requires -fno-discard-value-names
-                    StringRef symbolName = getAccessedSymbolName(def);;
+                    StringRef symbolName = getAccessedSymbolName(def);
+
+					#ifdef DEBUG_PRINT
+					errs () << "  preprocessed ("<< symbolName << "): "<< *def << "\n";
+					#endif
+
                     if (!symbolName.empty()) {
                         accessedCacheLines.insert(std::pair<StringRef, std::set<int>>(symbolName, std::set<int>()));
                         relevantBlocks.insert(&B);
@@ -280,9 +282,9 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
     for (BasicBlock &B : F) {
         for (PHINode &phi : B.phis()) {
             bool dominates = false;
-            //errs() << phi << " -- ";
+            errs() << phi << " || ";
             for (Use &v : phi.incoming_values()) {
-                //errs() << *v << " (" << m_domT->dominates(&phi, v) << ") -- ";
+                errs() << *v << " (" << m_domT->dominates(&phi, v) << ") -- ";
                 if (m_domT->dominates(&phi, v)) {
                     dominates = true;
                 }
@@ -290,7 +292,7 @@ void CacheLineReuseAnalysis::preprocess(Function &F, std::set<Instruction*>& mem
             if (dominates) {
                 loopPhis.insert(&phi);
             }
-            //errs() << "\n";
+            errs() << "\n";
         }
     }
 }
@@ -311,7 +313,7 @@ void CacheLineReuseAnalysis::simulateMemoryAccess(Instruction *inst) {
     StringRef accessedSymbolName = getAccessedSymbolName(ptr);
     std::vector<MemAccessDescriptor> mads = getMADs(ptr);
     std::set<int> * prevAccesses = &accessedCacheLines[accessedSymbolName];
-    std::set<int> accessesToAdd; 
+    std::set<int> accessesToAdd;
     for (MemAccessDescriptor & mad : mads) {
         mad.print();
         bool fullCoalescing = true;
@@ -321,14 +323,14 @@ void CacheLineReuseAnalysis::simulateMemoryAccess(Instruction *inst) {
         accesses.unique();
         int uniqueAccessesNum = accesses.size();
         int duplicates = accessesNum - uniqueAccessesNum;
-        
+
         if (duplicates == 0 && uniqueAccessesNum > 1) {
             std::vector<int> intersection(prevAccesses->size() + accesses.size());
             duplicates = set_intersection(prevAccesses->begin(), prevAccesses->end(), accesses.begin(), accesses.end(), intersection.begin()) - intersection.begin();
         }
-        
+
         accessesToAdd.insert(accesses.begin(), accesses.end());
-        
+
         #ifdef DEBUG_PRINT
             errs() << "Returned " << accessesNum << " accesses to " << uniqueAccessesNum << " unique cache lines with " << duplicates << " duplicates\n";
         #endif
@@ -487,7 +489,7 @@ void CacheLineReuseAnalysis::visitCall(CallInst *call) {
         errs() << "ERROR: Called unsupported function: " << calleeN << "\n"; //TODO currently no support for custom functions
         clrErrors = true;
     }
-} 
+}
 
 void CacheLineReuseAnalysis::visitThreadIdx(CallInst *call, unsigned int dimension) {
     MemAccessDescriptor v(dimension, MAX_DIMENSIONS[dimension]);
