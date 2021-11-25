@@ -87,24 +87,6 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
 	m_gridAnalysis = &getAnalysis<GridAnalysisPass>();
 	dimensions = getDimensionality();
 
-	// 	/*for (BasicBlock &B : F) {
-	// 	errs() << "Basic block " << B.getName() << " has " << B.size() << " instructions "
-	// 	<< "(part of loop: " << m_loopInfo->getLoopFor(&B)
-	// 	<< " is loop header: " << m_loopInfo->isLoopHeader(&B)
-	// 	<< " loop depth: " << m_loopInfo->getLoopDepth(&B) << ")\n";
-	// 	if ( m_loopInfo->isLoopHeader(&B) ) {
-	// 	LoopBlocksDFS DFS(m_loopInfo->getLoopFor(&B));
-	// 	DFS.perform(m_loopInfo);
-	// 	errs() << "===================================" << DFS.getRPO(&B) << DFS.isComplete() << "\n";
-	// 	for (auto it = DFS.beginRPO(); it != DFS.endRPO(); it++) {
-	// 	errs() << (*it)->getName() << "\n";
-	// }
-	// errs() << "===================================\n";
-	// }
-	// }*/
-
-
-
 	ReversePostOrderTraversal<Function*> RPOT(&F); // Expensive to create
 	for (auto I = RPOT.begin(); I != RPOT.end(); ++I) {
 		BasicBlock *block = *I;
@@ -190,7 +172,7 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
 
 				if (loopPhis.find(&phi) != loopPhis.end()) {
 
-					// Get correct position of initialized and 1st iteration value of phi instr 
+					// Get correct position of initialized and 1st iteration value of phi instr
 					int initIdx = 0;
 					int stepIdx = 1;
 					Instruction *inst = dyn_cast<Instruction>(phi.getIncomingValue(0));
