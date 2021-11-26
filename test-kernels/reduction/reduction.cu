@@ -33,27 +33,17 @@
 
 
 // Naive reduce (interleaved addressing)
-__global__ void reduce1(const int *d_idata, int *d_odata) {
+__global__ void reduce1(int *d_data) {
 
-	extern __shared__ int sdata[];
+	// calc index
+	unsigned int index = blockIdx.x*blockDim.x + threadIdx.x;
 
-	// each thread loads one element from global to shared mem
-	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = d_idata[i];
-	__syncthreads();
-
-	// do reduction in shared mem
+	// do reduction
 	for(unsigned int s=1; s < blockDim.x; s *= 2) {
 		if (tid % (2*s) == 0) {
-			sdata[tid] += sdata[tid + s];
+			d_data[index] = d_data[index] + d_data[index + s];
 		}
 		__syncthreads();
-	}
-
-	// write result for this block to global mem
-	if (tid == 0)  {
-		d_odata[blockIdx.x] = sdata[0];
 	}
 }
 
@@ -142,30 +132,6 @@ __global__ void reduce4(const int *d_idata, int *d_odata) {
 	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
 }
 
-// // First Add during load and unroll last Warp
-// __global__ void reduce5(int *d_idata, int *d_odata) {
-//
-// 	extern __shared__ int sdata[];
-//
-// 	// perform first level of reduction,
-// 	// reading from global memory, writing to shared memory
-// 	unsigned int tid = threadIdx.x;
-// 	unsigned int i = blockIdx.x*(blockDim.x*2) + threadIdx.x;
-// 	sdata[tid] = d_idata[i] + d_idata[i+blockDim.x];
-// 	__syncthreads();
-//
-// 	// do reduction in shared mem
-// 	for (unsigned int s=blockDim.x/2; s>32; s>>=1) {
-// 		if (tid < s)
-// 		sdata[tid] += sdata[tid + s];
-// 		__syncthreads();
-// 	}
-//
-// 	if (tid < 32) warpReduce(sdata, tid);
-//
-// 	// write result for this block to global mem
-// 	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
-// }
 
 int main(int argc, char **argv) {
 
