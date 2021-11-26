@@ -36,111 +36,108 @@
 __global__ void reduce1(int *d_data) {
 
 	// calc index
-	unsigned int index = blockIdx.x*blockDim.x + threadIdx.x;
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// do reduction
-	for(unsigned int s=1; s < blockDim.x; s *= 2) {
-		if (threadIdx.x % (2*s) == 0) {
-			d_data[index] = d_data[index] + d_data[index + s];
+	for(unsigned int s = 1; s < blockDim.x; s *= 2) {
+		if (tid % (2 * s) == 0) {
+			d_data[i] = d_data[i] + d_data[i + s];
 		}
 		__syncthreads();
 	}
 
 	// write result for this block to global mem
-	if (threadIdx.x == 0) {
-		d_data[blockIdx.x] = d_data[index];
+	if (tid == 0) {
+		d_data[blockIdx.x] = d_data[i];
 	}
 }
 
 
 // strided indexing for non-divergent branching (interleaved addressing) --> Bank conflicts
-__global__ void reduce2(const int *d_idata, int *d_odata) {
+__global__ void reduce2(int *d_data) {
 
-	extern __shared__ int sdata[];
-
-	// each thread loads one element from global to shared mem
+	// calc index
 	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = d_idata[i];
-	__syncthreads();
+	unsigned int offset = blockIdx.x * blockDim.x;
 
-	// do reduction in shared mem
-	for (unsigned int s=1; s < blockDim.x; s *= 2)  {
+	// do reduction
+	for (unsigned int s = 1; s < blockDim.x; s *= 2)  {
 		int index = 2 * s * tid;
 		if (index < blockDim.x) {
-			sdata[index] += sdata[index + s];
+			d_data[offset + index] += d_data[offset + index + s];
 		}
 		__syncthreads();
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
+	if (tid == 0){
+		d_data[blockIdx.x] = d_data[offset];
+	}
 }
 
 
 // Sequential Addressing
-__global__ void reduce3(const int *d_idata, int *d_odata) {
+__global__ void reduce3(int *d_data) {
 
-	extern __shared__ int sdata[];
-
-	// each thread loads one element from global to shared mem
+	// calc index
 	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = d_idata[i];
-	__syncthreads();
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// do reduction in shared mem
-	for (unsigned int s=blockDim.x/2; s>0; s>>=1) {
+	// do reduction
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 		if (tid < s) {
-			sdata[tid] += sdata[tid + s];
+			d_data[i] += d_data[i + s];
 		}
 		__syncthreads();
 	}
 
 	// write result for this block to global mem
-	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) {
+		d_data[blockIdx.x] = d_data[i];
+	}
 }
 
 
-__device__ void warpReduce(volatile int* sdata, int tid) {
-	sdata[tid] += sdata[tid + 32];
-	sdata[tid] += sdata[tid + 16];
-	sdata[tid] += sdata[tid +  8];
-	sdata[tid] += sdata[tid +  4];
-	sdata[tid] += sdata[tid +  2];
-	sdata[tid] += sdata[tid +  1];
+__device__ void warpReduce(volatile int* d_data, int index) {
+	d_data[index] += d_data[index + 32];
+	d_data[index] += d_data[index + 16];
+	d_data[index] += d_data[index +  8];
+	d_data[index] += d_data[index +  4];
+	d_data[index] += d_data[index +  2];
+	d_data[index] += d_data[index +  1];
 }
 
 
 // Unroll last Warp
-__global__ void reduce4(const int *d_idata, int *d_odata) {
+__global__ void reduce4(int *d_data) {
 
-	extern __shared__ int sdata[];
-
-	// perform first level of reduction,
-	// reading from global memory, writing to shared memory
+	// calc index
 	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
-	sdata[tid] = d_idata[i];
-	__syncthreads();
+	unsigned int offset = blockIdx.x * blockDim.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// do reduction in shared mem
-	for (unsigned int s=blockDim.x/2; s>32; s>>=1) {
-		if (tid < s)
-		sdata[tid] += sdata[tid + s];
+	// do reduction
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s) {
+			d_data[i] += d_data[i + s];
+		}
 		__syncthreads();
 	}
 
-	if (tid < 32) warpReduce(sdata, tid);
+	if (tid < 32) warpReduce(d_data, i);
 
 	// write result for this block to global mem
-	if (tid == 0) d_odata[blockIdx.x] = sdata[0];
+	if (tid == 0) {
+		d_data[blockIdx.x] = d_data[i];
+	}
 }
 
 
 int main(int argc, char **argv) {
 
 	int success = 0;
+	unsigned int data_remaining = 0;
 
 	unsigned int data_points = 2097152;
 	unsigned int dimBlock = 128;
@@ -159,10 +156,11 @@ int main(int argc, char **argv) {
 	checkCuda(cudaMemcpy(d_data, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
 
 	// ********************** reduce1 **********************
-	unsigned int data_remaining = data_points;
+	data_remaining = data_points;
+
 	while (data_remaining > dimBlock) { // Never ends if dimblock == 1
 		printf("Call reduce1<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
-		reduce1<<<data_remaining / dimBlock , dimBlock, dimBlock * sizeof(int)>>>(d_data);
+		reduce1<<<data_remaining / dimBlock , dimBlock>>>(d_data);
 		checkCuda(cudaGetLastError());
 
 		data_remaining = data_remaining / dimBlock;
@@ -171,7 +169,7 @@ int main(int argc, char **argv) {
 	// Make last reduce (would be more efficient to do on Host)
 	if (data_remaining > 1) {
 		printf("Call reduce1<<<%d, %d>>> for last reduce\n", 1, data_remaining);
-		reduce1<<<1 , data_remaining, data_remaining * sizeof(int)>>>(d_data);
+		reduce1<<<1 , data_remaining>>>(d_data);
 		checkCuda(cudaGetLastError());
 	}
 
@@ -190,111 +188,115 @@ int main(int argc, char **argv) {
 	// Prepare for next Kernel
 	checkCuda(cudaMemcpy(d_data, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
 	h_odata = 0;
+	// *****************************************************
 
-	// // ********************** reduce2 **********************
-	//
-	// data_remaining = data_points;
-	// while (data_remaining > dimBlock) { // Never ends if dimblock == 1
-	// 	printf("Call reduce2<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
-	// 	reduce2<<<data_remaining / dimBlock , dimBlock, dimBlock * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaMemcpy(d_idata, d_odata, data_remaining * sizeof(int), cudaMemcpyDeviceToDevice));
-	// 	checkCuda(cudaGetLastError());
-	// 	// checkCuda(cudaDeviceSynchronize());
-	// 	data_remaining = data_remaining / dimBlock;
-	// }
-	//
-	// // Make last reduce (would be more efficient to do on Host)
-	// if (data_remaining > 1) {
-	// 	printf("Call reduce2<<<%d, %d>>> for last reduce\n", 1, data_remaining);
-	// 	reduce2<<<1 , data_remaining, data_remaining * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaGetLastError());
-	// }
-	//
-	// // Copy result back to host (theoretically only need first entry)
-	// checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(int), cudaMemcpyDeviceToHost));
-	//
-	// // Compare to reference
-	// if (ref != h_odata[0]) {
-	// 	printf("Reference= %d\nResult   = %d\n", ref, h_odata[0]);
-	// 	success ++;
-	// } else {
-	// 	printf("## Success for reduce2!\n");
-	// }
-	//
-	// // Prepare for next Kernel
-	// checkCuda(cudaMemcpy(d_idata, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
-	// checkCuda(cudaMemset(d_odata, 0, data_points * sizeof(int)));
-	// memset(h_odata, 0, data_points * sizeof(int));
-	//
-	// // ********************** reduce3 **********************
-	// data_remaining = data_points;
-	// while (data_remaining > dimBlock) { // Never ends if dimblock == 1
-	// 	printf("Call reduce3<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
-	// 	reduce3<<<data_remaining / dimBlock , dimBlock, dimBlock * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaMemcpy(d_idata, d_odata, data_remaining * sizeof(int), cudaMemcpyDeviceToDevice));
-	// 	checkCuda(cudaGetLastError());
-	// 	// checkCuda(cudaDeviceSynchronize());
-	// 	data_remaining = data_remaining / dimBlock;
-	// }
-	//
-	// // Make last reduce (would be more efficient to do on Host)
-	// if (data_remaining > 1) {
-	// 	printf("Call reduce3<<<%d, %d>>> for last reduce\n", 1, data_remaining);
-	// 	reduce3<<<1 , data_remaining, data_remaining * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaGetLastError());
-	// }
-	//
-	// // Copy result back to host (theoretically only need first entry)
-	// checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(int), cudaMemcpyDeviceToHost));
-	//
-	// // Compare to reference
-	// if (ref != h_odata[0]) {
-	// 	printf("Reference= %d\nResult   = %d\n", ref, h_odata[0]);
-	// 	success ++;
-	// } else {
-	// 	printf("## Success for reduce3!\n");
-	// }
-	//
-	// // Prepare for next Kernel
-	// checkCuda(cudaMemcpy(d_idata, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
-	// checkCuda(cudaMemset(d_odata, 0, data_points * sizeof(int)));
-	// memset(h_odata, 0, data_points * sizeof(int));
-	//
-	//
-	// // ********************** reduce4 **********************
-	// data_remaining = data_points;
-	// while (data_remaining > dimBlock) { // Never ends if dimblock == 1
-	// 	printf("Call reduce4<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
-	// 	reduce4<<<data_remaining / dimBlock , dimBlock, dimBlock * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaMemcpy(d_idata, d_odata, data_remaining * sizeof(int), cudaMemcpyDeviceToDevice));
-	// 	checkCuda(cudaGetLastError());
-	// 	// checkCuda(cudaDeviceSynchronize());
-	// 	data_remaining = data_remaining / dimBlock;
-	// }
-	//
-	// // Make last reduce (would be more efficient to do on Host)
-	// if (data_remaining > 1) {
-	// 	printf("Call reduce4<<<%d, %d>>> for last reduce\n", 1, data_remaining);
-	// 	reduce4<<<1 , data_remaining, data_remaining * sizeof(int)>>>(d_idata, d_odata);
-	// 	checkCuda(cudaGetLastError());
-	// }
-	//
-	// // Copy result back to host (theoretically only need first entry)
-	// checkCuda(cudaMemcpy(h_odata, d_odata, data_points * sizeof(int), cudaMemcpyDeviceToHost));
-	//
-	// // Compare to reference
-	// if (ref != h_odata[0]) {
-	// 	printf("FAILURE: Reference= %d\tResult   = %d\n\n", ref, h_odata[0]);
-	// 	success ++;
-	// } else {
-	// 	printf("## Success for reduce4!\n");
-	// }
-	//
-	// // Prepare for next Kernel
-	// checkCuda(cudaMemcpy(d_idata, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
-	// checkCuda(cudaMemset(d_odata, 0, data_points * sizeof(int)));
-	// memset(h_odata, 0, data_points * sizeof(int));
 
+	// ********************** reduce2 **********************
+	data_remaining = data_points;
+
+	while (data_remaining > dimBlock) { // Never ends if dimblock == 1
+		printf("Call reduce2<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
+		reduce2<<<data_remaining / dimBlock , dimBlock>>>(d_data);
+		checkCuda(cudaGetLastError());
+
+		data_remaining = data_remaining / dimBlock;
+	}
+
+	// Make last reduce (would be more efficient to do on Host)
+	if (data_remaining > 1) {
+		printf("Call reduce2<<<%d, %d>>> for last reduce\n", 1, data_remaining);
+		reduce2<<<1 , data_remaining>>>(d_data);
+		checkCuda(cudaGetLastError());
+	}
+
+	// Copy result back to host (theoretically only need first entry)
+	checkCuda(cudaMemcpy(&h_odata, d_data, sizeof(int), cudaMemcpyDeviceToHost));
+	// checkCuda(cudaMemcpy(h_odata, d_data, data_points * sizeof(int), cudaMemcpyDeviceToHost));
+
+	// Compare to reference
+	if (ref != h_odata) {
+		printf("Reference= %d\nResult   = %d\n", ref, h_odata);
+		success ++;
+	} else {
+		printf("## Success for reduce2!\n");
+	}
+
+	// Prepare for next Kernel
+	checkCuda(cudaMemcpy(d_data, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
+	h_odata = 0;
+	// *****************************************************
+
+
+	// ********************** reduce3 **********************
+	data_remaining = data_points;
+
+	while (data_remaining > dimBlock) { // Never ends if dimblock == 1
+		printf("Call reduce3<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
+		reduce3<<<data_remaining / dimBlock , dimBlock>>>(d_data);
+		checkCuda(cudaGetLastError());
+
+		data_remaining = data_remaining / dimBlock;
+	}
+
+	// Make last reduce (would be more efficient to do on Host)
+	if (data_remaining > 1) {
+		printf("Call reduce3<<<%d, %d>>> for last reduce\n", 1, data_remaining);
+		reduce3<<<1 , data_remaining>>>(d_data);
+		checkCuda(cudaGetLastError());
+	}
+
+	// Copy result back to host (theoretically only need first entry)
+	checkCuda(cudaMemcpy(&h_odata, d_data, sizeof(int), cudaMemcpyDeviceToHost));
+	// checkCuda(cudaMemcpy(h_odata, d_data, data_points * sizeof(int), cudaMemcpyDeviceToHost));
+
+	// Compare to reference
+	if (ref != h_odata) {
+		printf("Reference= %d\nResult   = %d\n", ref, h_odata);
+		success ++;
+	} else {
+		printf("## Success for reduce3!\n");
+	}
+
+	// Prepare for next Kernel
+	checkCuda(cudaMemcpy(d_data, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
+	h_odata = 0;
+	// *****************************************************
+
+
+	// ********************** reduce4 **********************
+	data_remaining = data_points;
+
+	while (data_remaining > dimBlock) { // Never ends if dimblock == 1
+		printf("Call reduce4<<<%d, %d>>>\n", data_remaining / dimBlock, dimBlock);
+		reduce4<<<data_remaining / dimBlock , dimBlock>>>(d_data);
+		checkCuda(cudaGetLastError());
+
+		data_remaining = data_remaining / dimBlock;
+	}
+
+	// Make last reduce (would be more efficient to do on Host)
+	if (data_remaining > 1) {
+		printf("Call reduce4<<<%d, %d>>> for last reduce\n", 1, data_remaining);
+		reduce4<<<1 , data_remaining>>>(d_data);
+		checkCuda(cudaGetLastError());
+	}
+
+	// Copy result back to host (theoretically only need first entry)
+	checkCuda(cudaMemcpy(&h_odata, d_data, sizeof(int), cudaMemcpyDeviceToHost));
+	// checkCuda(cudaMemcpy(h_odata, d_data, data_points * sizeof(int), cudaMemcpyDeviceToHost));
+
+	// Compare to reference
+	if (ref != h_odata) {
+		printf("Reference= %d\nResult   = %d\n", ref, h_odata);
+		success ++;
+	} else {
+		printf("## Success for reduce4!\n");
+	}
+
+	// Prepare for next Kernel
+	checkCuda(cudaMemcpy(d_data, h_idata, data_points * sizeof(int), cudaMemcpyHostToDevice));
+	h_odata = 0;
+	// *****************************************************
 
 
 
