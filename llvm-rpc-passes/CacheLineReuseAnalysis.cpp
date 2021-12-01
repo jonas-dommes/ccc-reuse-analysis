@@ -122,11 +122,11 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
 	}
 
 	#ifdef DEBUG_PRINT
-		errs() << "Printing memops:\n";
+		errs() << "\nPrinting memops:\n";
 		for (Instruction * memop : memops) {
 			errs() << *memop << "\n";
 		}
-		errs() << "There are " << relevantInstructions.size() << " relevant instructions\n";
+		errs() << "There are " << relevantInstructions.size() << " relevant instructions\n\n";
 
 		// do a bit of printing
 		for (BasicBlock &B : F) {
@@ -134,6 +134,7 @@ bool CacheLineReuseAnalysis::runOnFunction(Function &F) {
 			for (Instruction &I: B) {
 				errs() << (relevantInstructions.count(&I) ? ">>" : "  ") << I << "\n";
 			}
+			errs() << "\n";
 		}
 	#endif
 
@@ -349,6 +350,7 @@ void CacheLineReuseAnalysis::simulateMemoryAccess(Instruction *inst) {
 			memopsDiagnostics[inst].cacheLineReuse = true;
 		}
 	}
+	errs() << "\n";
 	prevAccesses->insert(accessesToAdd.begin(), accessesToAdd.end());
 
 }
