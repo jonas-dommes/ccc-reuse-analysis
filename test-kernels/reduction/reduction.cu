@@ -40,7 +40,7 @@ __global__ void reduce1(int *d_data) {
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// do reduction
-	for(unsigned int s = 1; s < blockDim.x; s *= 2) {
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
 		if (tid % (2 * s) == 0) {
 			d_data[i] = d_data[i] + d_data[i + s];
 		}
@@ -118,7 +118,7 @@ __global__ void reduce4(int *d_data) {
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// do reduction
-	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+	for (unsigned int s = blockDim.x / 2; s > 32; s >>= 1) {
 		if (tid < s) {
 			d_data[i] += d_data[i + s];
 		}
@@ -141,6 +141,14 @@ int main(int argc, char **argv) {
 
 	unsigned int data_points = 2097152;
 	unsigned int dimBlock = 128;
+
+	// Get args
+	if (argc == 3) {
+		data_points = atoi(argv[1]);
+		dimBlock = atoi(argv[2]);
+	} else {
+		printf("Using default datasize, argc = %d\n", argc);
+	}
 
 	// Prepare host data
 	int *h_idata = (int*) calloc(data_points, sizeof(int));
