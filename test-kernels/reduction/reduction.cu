@@ -62,7 +62,7 @@ __global__ void reduce2(int *d_data) {
 	unsigned int offset = blockIdx.x * blockDim.x;
 
 	// do reduction
-	for (unsigned int s = 1; s < blockDim.x; s *= 2)  {
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
 		int index = 2 * s * tid;
 		if (index < blockDim.x) {
 			d_data[offset + index] += d_data[offset + index + s];
