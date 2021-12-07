@@ -459,7 +459,7 @@ void CacheLineReuseAnalysis::visitInst(Instruction *inst) {
 		case Instruction::UDiv          :       visitBinaryOp(std::divides<int>(), inst);                 break;
 		case Instruction::URem          :       visitBinaryOp(std::modulus<int>(), inst);                 break;
 		case Instruction::Shl           :       visitBinaryOp([](int a, int b) {return a << b;}, inst);   break;
-		case Instruction::LShr           :       visitBinaryOp([](int a, int b) {return a << b;}, inst);   break;
+		case Instruction::LShr           :       visitBinaryOp([](int a, int b) {return a >> b;}, inst);   break;
 		case Instruction::Or            :       visitBinaryOp(std::bit_or<int>(), inst);                  break;
 		case Instruction::And           :       visitBinaryOp(std::bit_and<int>(), inst);                 break;
 		case Instruction::Xor           :       visitBinaryOp(std::bit_xor<int>(), inst);                 break;
