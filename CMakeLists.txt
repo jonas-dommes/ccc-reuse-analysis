@@ -11,6 +11,8 @@ message(STATUS "Found LLVM in ${LLVM_DIR}")
 add_subdirectory(llvm-rpc-passes)
 add_subdirectory(rpc-runtime)
 
+add_subdirectory(maa-pass)
+
 include(CMakePackageConfigHelpers)
 install(
   TARGETS LLVMCUDACoarsening rpc-runtime
