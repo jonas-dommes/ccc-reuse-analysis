@@ -1,34 +1,41 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/IR/Instructions.h>
 #include "llvm/IR/InstIterator.h"
+#include "llvm/Support/raw_ostream.h"
 
 
 using namespace llvm;
 
-struct mma : public FunctionPass {
+struct maa : public FunctionPass {
 	static char ID;
-	mma() : FunctionPass(ID) {}
+	maa() : FunctionPass(ID) {}
 
 	bool runOnFunction(Function &F) override {
 
-		unsigned int num_maas = 0;
+		unsigned int num_loads = 0;
+		unsigned int num_stores = 0;
 
-		for (auto &I : F) {
-			// errs() << I << "\n";
-			errs() << "I" << "\n";
+	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+
+		if (isa<StoreInst>(*I)) {
+
+			num_stores++;
+
+
+
+		} else if (isa<LoadInst>(*I)) {
+
+			num_loads++;
 		}
-
-		// 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I)
-		// errs() << *I << "\n";
-
-
-
-		errs().write_escaped(F.getName()) << " uses " << num_maas << " memory access instructions\n";
-
-		return false;
 	}
+
+
+	errs().write_escaped(F.getName()) << " uses " << num_stores + num_loads << " memory access instructions\n";
+
+	return false;
+}
 }; // end of struct Hello
 
-char mma::ID = 0;
-static RegisterPass<mma> X("mma", "Memory Access Analysis Pass", true /* Only looks at CFG */, true /* Analysis Pass */);
+char maa::ID = 0;
+static RegisterPass<maa> X("maa", "Memory Access Analysis Pass", true /* Only looks at CFG */, true /* Analysis Pass */);
