@@ -1,4 +1,6 @@
 #include <string>
+#include <set>
+#include <iostream>
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
@@ -14,10 +16,15 @@ using namespace llvm;
 
 
 struct maa : public FunctionPass {
+
 	static char ID;
 	maa() : FunctionPass(ID) {}
 
+
 	bool runOnFunction(Function &F) override {
+
+		std::set<Value *> load_addresses;
+		std::set<Value *> store_addresses;
 
 		struct pass_stats stats;
 		stats.function_name = F.getName();
@@ -27,12 +34,25 @@ struct maa : public FunctionPass {
 			if (isa<StoreInst>(*I)) {
 
 				stats.num_stores++;
+				store_addresses.insert(I->getOperand(1));
 
 			} else if (isa<LoadInst>(*I)) {
 
 				stats.num_loads++;
+				load_addresses.insert(I->getOperand(0));
+
 			}
 		}
+		// errs() << load_addresses.begin() << "\n";
+
+		stats.unique_loads = load_addresses.size();
+		stats.unique_stores = store_addresses.size();
+
+		// std::cout << "loads: " << load_addresses;
+
+		std::set<Value *> total;
+		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
+		stats.unique_total = total.size();
 
 		print_stats(&stats);
 
@@ -45,8 +65,9 @@ private:
 	void print_stats(struct pass_stats *stats) {
 
 		printf("%s\n", stats->function_name.c_str());
-		printf("\tNum loads:\t%4d\n", stats->num_loads);
-		printf("\tNum stores:\t%4d\n", stats->num_stores);
+		printf("\tNum loads  (unique): %2d (%2d)\n", stats->num_loads, stats->unique_loads);
+		printf("\tNum stores (unique): %2d (%2d)\n", stats->num_stores, stats->unique_stores);
+		printf("\tNum total  (unique): %2d (%2d)\n", stats->num_stores + stats->num_loads, stats->unique_total);
 
 	}
 };
