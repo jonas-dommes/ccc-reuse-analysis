@@ -4,6 +4,7 @@
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Module.h"
 #include <llvm/IR/Instructions.h>
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
@@ -11,8 +12,6 @@
 #include "MemoryAccessAnalysis.h"
 
 using namespace llvm;
-
-
 
 
 struct maa : public FunctionPass {
@@ -55,6 +54,10 @@ struct maa : public FunctionPass {
 		stats.unique_total = total.size();
 
 		print_stats(&stats);
+
+		bool isKernel = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
+
+		errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
 
 		return false;
 	}

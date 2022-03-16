@@ -1,4 +1,8 @@
+#ifndef MEMORYACCESSANALYSIS_H
+#define MEMORYACCESSANALYSIS_H
 
+
+#define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"
 
 struct pass_stats {
 	std::string function_name;
@@ -8,3 +12,5 @@ struct pass_stats {
 	unsigned int unique_stores = 0;
 	unsigned int unique_total = 0;
 };
+
+#endif
