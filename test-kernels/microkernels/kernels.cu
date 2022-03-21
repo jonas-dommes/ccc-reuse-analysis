@@ -25,6 +25,10 @@
 * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+clang++ -S -emit-llvm -O1 ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.cu --cuda-gpu-arch=sm_75 -fno-discard-value-names --cuda-device-only -o ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.ll
+*/
+
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
@@ -32,6 +36,8 @@
 #include "utility.h"
 
 #define DEBUG 1
+#define TILE_DIM 32
+#define BLOCK_ROWS 8
 
 // Data reuse of first few entries
 __global__ void kernel_a(float *odata, const float *idata, int work_per_thread) {
@@ -64,7 +70,74 @@ __global__ void kernel_b(float *odata, const float *idata, int work_per_thread) 
 	}
 }
 
-// Use shared memory
+// Naive reduce (interleaved addressing)
+__global__ void reduce1(int *d_data) {
+
+	// calc index
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// do reduction
+	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
+		if (tid % (2 * s) == 0) {
+			d_data[i] = d_data[i] + d_data[i + s];
+		}
+		__syncthreads();
+	}
+
+	// write result for this block to global mem
+	if (tid == 0) {
+		d_data[blockIdx.x] = d_data[i];
+	}
+}
+
+// Sequential Addressing
+__global__ void reduce3(int *d_data) {
+
+	// calc index
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// do reduction
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s) {
+			d_data[i] += d_data[i + s];
+		}
+		__syncthreads();
+	}
+
+	// write result for this block to global mem
+	if (tid == 0) {
+		d_data[blockIdx.x] = d_data[i];
+	}
+}
+
+// simple copy kernel
+// Used as reference case representing best effective bandwidth.
+__global__ void copy(float *odata, const float *idata)
+{
+    int x = blockIdx.x * TILE_DIM + threadIdx.x;
+    int y = blockIdx.y * TILE_DIM + threadIdx.y;
+    int width = gridDim.x * TILE_DIM;
+
+    for (int j = 0; j < TILE_DIM; j+= BLOCK_ROWS) odata[(y+j)*width + x] = idata[(y+j)*width + x];
+}
+
+// 2d simple transpose
+// Simplest transpose; doesn't use shared memory.
+// Global memory reads are coalesced but writes are not.
+__global__ void transposeSimple(float *odata, const float *idata)
+{
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int width = gridDim.x * blockDim.x;
+    int height = gridDim.y * blockDim.y;
+    int indexIn = row * width + col;
+    int indexOut = col * height + row;
+
+    odata[indexOut]  = idata[indexIn];
+
+}
 
 
 int main(int argc, char **argv) {
