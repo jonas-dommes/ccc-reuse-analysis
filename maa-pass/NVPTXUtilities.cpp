@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "NVPTXUtilities.h"
-#include "NVPTX.h"
+// #include "NVPTX.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"

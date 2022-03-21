@@ -9,6 +9,8 @@
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "NVPTXUtilities.h"
+
 #include "MemoryAccessAnalysis.h"
 
 using namespace llvm;
@@ -24,6 +26,14 @@ struct maa : public FunctionPass {
 
 		std::set<Value *> load_addresses;
 		std::set<Value *> store_addresses;
+
+		// Stop if function is no kernelfunction
+		bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
+		bool isKernel = isKernelFunction(F);
+
+		if (!isCUDA || !isKernel) {
+			return false;
+		}
 
 		struct pass_stats stats;
 		stats.function_name = F.getName();
@@ -42,22 +52,19 @@ struct maa : public FunctionPass {
 
 			}
 		}
-		// errs() << load_addresses.begin() << "\n";
 
 		stats.unique_loads = load_addresses.size();
 		stats.unique_stores = store_addresses.size();
 
-		// std::cout << "loads: " << load_addresses;
-
+		// Get total unique loads and stores
 		std::set<Value *> total;
 		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
 		stats.unique_total = total.size();
 
 		print_stats(&stats);
 
-		bool isKernel = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
 
-		errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
+		// errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
 
 		return false;
 	}
