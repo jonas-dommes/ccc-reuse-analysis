@@ -47,5 +47,5 @@ install(FILES
 #
 include("${CMAKE_SOURCE_DIR}/cmake/cuda-coarsening-compiler-config.cmake.in")
 # coarsening_compile(TARGET mt SOURCES test-kernels/matrix-transpose/matrix-transpose.cu)
-# coarsening_compile(TARGET copy SOURCES test-kernels/copy/copy.cu)
-coarsening_compile(TARGET reduction SOURCES test-kernels/reduction/reduction.cu)
+coarsening_compile(TARGET kernels SOURCES test-kernels/microkernels/kernels.cu)
+# coarsening_compile(TARGET reduction SOURCES test-kernels/reduction/reduction.cu)
