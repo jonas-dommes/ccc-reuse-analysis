@@ -12,6 +12,8 @@
 #include "NVPTXUtilities.h"
 
 #include "MemoryAccessAnalysis.h"
+#include "Stats.h"
+#include "Util.h"
 
 using namespace llvm;
 
@@ -35,33 +37,34 @@ struct maa : public FunctionPass {
 			return false;
 		}
 
-		struct pass_stats stats;
-		stats.function_name = F.getName();
+		Stats pass_stats;
+		pass_stats.function_name = F.getName();
 
 		for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
 			if (isa<StoreInst>(*I)) {
 
-				stats.num_stores++;
+				pass_stats.num_stores++;
 				store_addresses.insert(I->getOperand(1));
 
 			} else if (isa<LoadInst>(*I)) {
 
-				stats.num_loads++;
+				pass_stats.num_loads++;
 				load_addresses.insert(I->getOperand(0));
 
 			}
 		}
 
-		stats.unique_loads = load_addresses.size();
-		stats.unique_stores = store_addresses.size();
+		pass_stats.unique_loads = load_addresses.size();
+		pass_stats.unique_stores = store_addresses.size();
 
 		// Get total unique loads and stores
 		std::set<Value *> total;
 		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
-		stats.unique_total = total.size();
+		pass_stats.unique_total = total.size();
 
-		print_stats(&stats);
+		// Util::print_stats(&stats);
+		pass_stats.print_stats();
 
 
 		// errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
@@ -72,14 +75,6 @@ struct maa : public FunctionPass {
 
 private:
 
-	void print_stats(struct pass_stats *stats) {
-
-		printf("%s\n", stats->function_name.c_str());
-		printf("\tNum loads  (unique): %2d (%2d)\n", stats->num_loads, stats->unique_loads);
-		printf("\tNum stores (unique): %2d (%2d)\n", stats->num_stores, stats->unique_stores);
-		printf("\tNum total  (unique): %2d (%2d)\n", stats->num_stores + stats->num_loads, stats->unique_total);
-
-	}
 };
 
 
