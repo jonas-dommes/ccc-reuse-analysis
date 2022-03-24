@@ -12,7 +12,7 @@
 #include "NVPTXUtilities.h"
 
 #include "MemoryAccessAnalysis.h"
-#include "Stats.h"
+#include "PassStats.h"
 #include "Util.h"
 
 using namespace llvm;
@@ -37,7 +37,7 @@ struct maa : public FunctionPass {
 			return false;
 		}
 
-		Stats pass_stats;
+		PassStats pass_stats;
 		pass_stats.function_name = F.getName();
 
 		for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
@@ -64,7 +64,7 @@ struct maa : public FunctionPass {
 		pass_stats.unique_total = total.size();
 
 		// Util::print_stats(&stats);
-		pass_stats.print_stats();
+		pass_stats.print_pass_stats();
 
 
 		// errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";

@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "Stats.h"
+#include "PassStats.h"
 
-void Stats::print_stats() {
+void PassStats::print_pass_stats() {
 
 		printf("%s\n", this->function_name.c_str());
 		printf("\tNum loads  (unique): %2d (%2d)\n", this->num_loads, this->unique_loads);

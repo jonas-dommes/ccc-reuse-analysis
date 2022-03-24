@@ -1,7 +1,7 @@
-#ifndef STATS_H
-#define STATS_H
+#ifndef PASSSTATS_H
+#define PASSSTATS_H
 
-class Stats {
+class PassStats {
 public:
 	std::string function_name;
 	unsigned int num_loads = 0;
@@ -10,7 +10,7 @@ public:
 	unsigned int unique_stores = 0;
 	unsigned int unique_total = 0;
 
-	void print_stats();
+	void print_pass_stats();
 };
 
 #endif
