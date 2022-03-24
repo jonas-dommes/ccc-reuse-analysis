@@ -3,7 +3,12 @@
 
 class InstrStats {
 public:
-	void print_instr_stats();	
+	bool isLoop;
+	unsigned int loopDepth;
+	bool isTidDep;
+	bool isBidDep;
+
+	void printInstrStats();
 };
 
 

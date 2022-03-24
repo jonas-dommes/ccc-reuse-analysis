@@ -13,6 +13,8 @@
 
 #include "MemoryAccessAnalysis.h"
 #include "PassStats.h"
+#include "FunctionStats.h"
+#include "InstrStats.h"
 #include "Util.h"
 
 using namespace llvm;
@@ -37,34 +39,34 @@ struct maa : public FunctionPass {
 			return false;
 		}
 
-		PassStats pass_stats;
-		pass_stats.function_name = F.getName();
+		FunctionStats func_stats;
+		func_stats.function_name = F.getName();
 
 		for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
 			if (isa<StoreInst>(*I)) {
 
-				pass_stats.num_stores++;
+				func_stats.num_stores++;
 				store_addresses.insert(I->getOperand(1));
 
 			} else if (isa<LoadInst>(*I)) {
 
-				pass_stats.num_loads++;
+				func_stats.num_loads++;
 				load_addresses.insert(I->getOperand(0));
 
 			}
 		}
 
-		pass_stats.unique_loads = load_addresses.size();
-		pass_stats.unique_stores = store_addresses.size();
+		func_stats.unique_loads = load_addresses.size();
+		func_stats.unique_stores = store_addresses.size();
 
 		// Get total unique loads and stores
 		std::set<Value *> total;
 		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
-		pass_stats.unique_total = total.size();
+		func_stats.unique_total = total.size();
 
 		// Util::print_stats(&stats);
-		pass_stats.print_pass_stats();
+		func_stats.printFunctionStats();
 
 
 		// errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
