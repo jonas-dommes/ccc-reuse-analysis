@@ -8,6 +8,7 @@
 #include <llvm/IR/Instructions.h>
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
+#include <llvm/Analysis/LoopInfo.h>
 
 #include "NVPTXUtilities.h"
 
@@ -25,11 +26,18 @@ struct maa : public FunctionPass {
 	static char ID;
 	maa() : FunctionPass(ID) {}
 
+	void getAnalysisUsage(AnalysisUsage &AU) const override {
+		AU.setPreservesCFG();
+		AU.addRequired<LoopInfoWrapperPass>();
+	}
+
 
 	bool runOnFunction(Function &F) override {
 
 		std::set<Value *> load_addresses;
 		std::set<Value *> store_addresses;
+
+		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
 		// Stop if function is no kernelfunction
 		bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
@@ -54,6 +62,13 @@ struct maa : public FunctionPass {
 				func_stats.num_loads++;
 				load_addresses.insert(I->getOperand(0));
 
+			}
+
+			// Check for loop
+			bool isLoop = LI.getLoopFor(I->getParent());
+
+			if (isLoop == true) {
+				errs() << *I << "is in loop\n";
 			}
 		}
 
