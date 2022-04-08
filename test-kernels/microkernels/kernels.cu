@@ -26,7 +26,7 @@
 */
 
 /*
-clang++ -S -emit-llvm -O1 ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.cu --cuda-gpu-arch=sm_75 -fno-discard-value-names --cuda-device-only -o ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.ll
+clang++-9 -S -emit-llvm -O1 ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.cu --cuda-gpu-arch=sm_75 -fno-discard-value-names --cuda-device-only -o ~/ba/code/ccc-reuse-analysis/test-kernels/microkernels/kernels.ll
 */
 
 #include <stdio.h>
