@@ -1,6 +1,7 @@
 #include <string>
 #include <set>
 #include <iostream>
+#include <map>
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
@@ -36,6 +37,7 @@ struct maa : public FunctionPass {
 
 		std::set<Value *> load_addresses;
 		std::set<Value *> store_addresses;
+		std::map<Instruction*, InstrStats> instr_map;
 
 		FunctionStats func_stats;
 		func_stats.function_name = F.getName();
@@ -51,17 +53,31 @@ struct maa : public FunctionPass {
 
 		for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
+			// Only analyse store and load instructions, otherwise continue
+			if (!isa<StoreInst>(*I) && !isa<LoadInst>(*I)) {
+				continue;
+			}
+
+			InstrStats instr_stats;
+
 			if (isa<StoreInst>(*I)) {
 
 				func_stats.num_stores++;
 				store_addresses.insert(I->getOperand(1));
+
+				instr_stats.addr = I->getOperand(1);
+				instr_stats.is_store = true;
 
 			} else if (isa<LoadInst>(*I)) {
 
 				func_stats.num_loads++;
 				load_addresses.insert(I->getOperand(0));
 
+				instr_stats.addr = I->getOperand(0);
+				instr_stats.is_load = true;
 			}
+
+			instr_map[&*I] = instr_stats;
 
 			// // Check for loop
 			// bool isLoop = LI.getLoopFor(I->getParent());
@@ -69,6 +85,12 @@ struct maa : public FunctionPass {
 			// if (isLoop == true) {
 			// 	errs() << *I << " is in loop\n";
 			// }
+		}
+
+		for (auto& elem : instr_map) {
+			errs() << *(elem.first) << "\n";
+			errs() << elem.second.is_load << "\n";
+			errs() << elem.second.is_store << "\n";
 		}
 
 		func_stats.unique_loads = load_addresses.size();
