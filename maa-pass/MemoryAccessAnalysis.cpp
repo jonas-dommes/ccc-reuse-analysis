@@ -37,18 +37,17 @@ struct maa : public FunctionPass {
 		std::set<Value *> load_addresses;
 		std::set<Value *> store_addresses;
 
-		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+		FunctionStats func_stats;
+		func_stats.function_name = F.getName();
+
+		func_stats.isKernel(F);
 
 		// Stop if function is no kernelfunction
-		bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
-		bool isKernel = isKernelFunction(F);
-
-		if (!isCUDA || !isKernel) {
+		if (!func_stats.is_kernel) {
 			return false;
 		}
 
-		FunctionStats func_stats;
-		func_stats.function_name = F.getName();
+		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
 		for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
@@ -64,12 +63,12 @@ struct maa : public FunctionPass {
 
 			}
 
-			// Check for loop
-			bool isLoop = LI.getLoopFor(I->getParent());
-
-			if (isLoop == true) {
-				errs() << *I << "is in loop\n";
-			}
+			// // Check for loop
+			// bool isLoop = LI.getLoopFor(I->getParent());
+			//
+			// if (isLoop == true) {
+			// 	errs() << *I << " is in loop\n";
+			// }
 		}
 
 		func_stats.unique_loads = load_addresses.size();
@@ -80,7 +79,6 @@ struct maa : public FunctionPass {
 		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
 		func_stats.unique_total = total.size();
 
-		// Util::print_stats(&stats);
 		func_stats.printFunctionStats();
 
 
