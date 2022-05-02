@@ -12,7 +12,7 @@ public:
 	unsigned int unique_loads = 0;
 	unsigned int unique_stores = 0;
 	unsigned int unique_total = 0;
-	bool is_kernel;
+	bool is_kernel = false;
 
 	bool isKernel(llvm::Function &F);
 

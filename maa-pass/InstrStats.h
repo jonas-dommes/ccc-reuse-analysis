@@ -4,13 +4,13 @@
 class InstrStats {
 public:
 	// bool is_loop;
-	unsigned int loop_depth;   // 0 -> no loop
-	bool is_tid_dep;
-	bool is_bid_dep;
-	bool first_use;            // Addr is used here for the first time
-	unsigned int addr;         // TODO change type to address type
-	bool is_load;
-	bool is_store;
+	unsigned int loop_depth = 0;   // 0 -> no loop
+	bool is_tid_dep = false;
+	bool is_bid_dep = false;
+	bool first_use = false;            // Addr is used here for the first time
+	llvm::Value * addr = NULL;
+	bool is_load = false;
+	bool is_store = false;
 
 	void printInstrStats();
 
