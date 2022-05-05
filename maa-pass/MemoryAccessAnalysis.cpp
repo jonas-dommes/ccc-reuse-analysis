@@ -60,6 +60,8 @@ struct maa : public FunctionPass {
 
 			InstrStats instr_stats;
 
+			instr_stats.loop_depth = LI.getLoopDepth((I->getParent()));
+
 			if (isa<StoreInst>(*I)) {
 
 				func_stats.num_stores++;
@@ -75,33 +77,31 @@ struct maa : public FunctionPass {
 
 				instr_stats.addr = I->getOperand(0);
 				instr_stats.is_load = true;
+
+				// errs() << I->getOperand(0)->getName() << "\n";
+
+				llvm::Instruction* I_parent = dyn_cast<Instruction>(I->getOperand(0));
+
+				errs() << *I_parent << "\n";
 			}
 
 			instr_map[&*I] = instr_stats;
 
-			// // Check for loop
-			// bool isLoop = LI.getLoopFor(I->getParent());
-			//
-			// if (isLoop == true) {
-			// 	errs() << *I << " is in loop\n";
-			// }
 		}
 
-		for (auto& elem : instr_map) {
-			errs() << *(elem.first) << "\n";
-			errs() << elem.second.is_load << "\n";
-			errs() << elem.second.is_store << "\n";
-		}
 
 		func_stats.unique_loads = load_addresses.size();
 		func_stats.unique_stores = store_addresses.size();
 
-		// Get total unique loads and stores
+		// Get total unique loads and stores TODO proper addresses
 		std::set<Value *> total;
 		set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
 		func_stats.unique_total = total.size();
 
+		func_stats.instr_map = instr_map;
+
 		func_stats.printFunctionStats();
+		func_stats.printInstrMap();
 
 
 		// errs() << stats.function_name.c_str() << "Kernel: " << isKernel << "\n";
