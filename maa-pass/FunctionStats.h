@@ -1,11 +1,17 @@
 #ifndef FUNCTIONSTATS_H
 #define FUNCTIONSTATS_H
 
+#include "InstrStats.h"
+
+
 #define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"
 
 
 class FunctionStats {
 public:
+
+	std::map<llvm::Instruction*, InstrStats> instr_map;
+
 	std::string function_name;
 	unsigned int num_loads = 0;
 	unsigned int num_stores = 0;
