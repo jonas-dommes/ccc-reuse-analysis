@@ -3,9 +3,10 @@
 
 #include <llvm/Analysis/LoopInfo.h>
 
+
 class InstrStats {
+
 public:
-	// bool is_loop;
 	unsigned int loop_depth = 0;   // 0 -> no loop
 	bool is_load = false;
 	bool is_store = false;
@@ -15,10 +16,20 @@ public:
 	bool first_use = false;            // Addr is used here for the first time
 	llvm::Value * addr = NULL;
 
+
+	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI);
+
 	void printInstrStats();
-	unsigned int getLoopDepth(llvm::LoopInfo *LI, llvm::Instruction *I);
+
+private:
+
+	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
+
 	void getIdDependence();
+
 	unsigned int getAddr();
+
+
 
 };
 

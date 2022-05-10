@@ -60,29 +60,20 @@ struct maa : public FunctionPass {
 
 			InstrStats instr_stats;
 
-			instr_stats.getLoopDepth(&LI, &*I);
+			instr_stats.analyseInstr(&*I, &LI);
+
+
 
 			if (isa<StoreInst>(*I)) {
 
 				func_stats.num_stores++;
 				store_addresses.insert(I->getOperand(1));
 
-				instr_stats.addr = I->getOperand(1);
-				instr_stats.is_store = true;
 
 			} else if (isa<LoadInst>(*I)) {
 
 				func_stats.num_loads++;
 				load_addresses.insert(I->getOperand(0));
-
-				instr_stats.addr = I->getOperand(0);
-				instr_stats.is_load = true;
-
-				// errs() << I->getOperand(0)->getName() << "\n";
-
-				llvm::Instruction* I_parent = dyn_cast<Instruction>(I->getOperand(0));
-
-				errs() << *I_parent << "\n";
 			}
 
 			instr_map[&*I] = instr_stats;
