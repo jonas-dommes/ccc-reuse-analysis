@@ -1,6 +1,8 @@
 #ifndef INSTRSTATS_H
 #define INSTRSTATS_H
 
+#include <llvm/Analysis/LoopInfo.h>
+
 class InstrStats {
 public:
 	// bool is_loop;
@@ -14,11 +16,10 @@ public:
 	llvm::Value * addr = NULL;
 
 	void printInstrStats();
-
-private:
-	unsigned int getLoopDepth();
+	unsigned int getLoopDepth(llvm::LoopInfo *LI, llvm::Instruction *I);
 	void getIdDependence();
 	unsigned int getAddr();
+
 };
 
 

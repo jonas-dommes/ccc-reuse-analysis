@@ -1,11 +1,20 @@
 #include <iostream>
 
+#include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Instructions.h>
 
 
 #include "InstrStats.h"
 
 
+
+
+unsigned int InstrStats::getLoopDepth(llvm::LoopInfo *LI, llvm::Instruction *I) {
+
+	this->loop_depth = LI->getLoopDepth((I->getParent()));
+
+	return this->loop_depth;
+}
 
 void InstrStats::printInstrStats() {
 

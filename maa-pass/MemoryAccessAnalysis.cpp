@@ -60,7 +60,7 @@ struct maa : public FunctionPass {
 
 			InstrStats instr_stats;
 
-			instr_stats.loop_depth = LI.getLoopDepth((I->getParent()));
+			instr_stats.getLoopDepth(&LI, &*I);
 
 			if (isa<StoreInst>(*I)) {
 
