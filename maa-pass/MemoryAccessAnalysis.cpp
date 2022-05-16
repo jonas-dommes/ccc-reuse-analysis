@@ -11,7 +11,11 @@
 #include "llvm/Support/raw_ostream.h"
 #include <llvm/Analysis/LoopInfo.h>
 
+#include "../llvm-rpc-passes/Common.h"
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
+
 #include "NVPTXUtilities.h"
+
 
 #include "MemoryAccessAnalysis.h"
 #include "PassStats.h"
@@ -30,6 +34,7 @@ struct maa : public FunctionPass {
 	void getAnalysisUsage(AnalysisUsage &AU) const override {
 		AU.setPreservesCFG();
 		AU.addRequired<LoopInfoWrapperPass>();
+		AU.addRequired<GridAnalysisPass>();
 	}
 
 
@@ -38,6 +43,7 @@ struct maa : public FunctionPass {
 		FunctionStats func_stats;
 
 		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
 		func_stats.analyseFunction(F, &LI);
 
