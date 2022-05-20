@@ -9,7 +9,8 @@
 
 #include <llvm/Support/raw_ostream.h>
 
-
+#include "../llvm-rpc-passes/Common.h"
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
 #include "NVPTXUtilities.h"
 #include "InstrStats.h"
 
@@ -28,27 +29,27 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	this->isKernel(F);
 
-	// if (!this->is_kernel) {
-	// 	return;
-	// }
+	if (!this->is_kernel) {
+		return;
+	}
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
-		// // Only analyse store and load instructions, otherwise continue
-		// if (!isa<StoreInst>(*I) && !isa<LoadInst>(*I)) {
-		// 	continue;
-		// }
+		// Only analyse store and load instructions, otherwise continue
+		if (!isa<StoreInst>(*I) && !isa<LoadInst>(*I)) {
+			continue;
+		}
 
 		InstrStats instr_stats;
 
-		instr_stats.analyseInstr(&*I, LI);
+		instr_stats.analyseInstr(&*I, LI, this->tid_calls);
 
 
 
-		if(isa<CallInst>(*I)) {
-			errs() << *I << "\n\t";
-			errs() << (I->getOperand(0)->getName()) << "\n";
-		}
+		// if(isa<CallInst>(*I)) {
+		// 	errs() << *I << "\n\t";
+		// 	errs() << (I->getOperand(0)->getName()) << "\n";
+		// }
 
 
 		if (isa<StoreInst>(*I)) {
@@ -78,7 +79,7 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 	this->instr_map = instr_map;
 
 	this->printFunctionStats();
-	// this->printInstrMap();
+	this->printInstrMap();
 }
 
 bool FunctionStats::isKernel(Function &F) {
@@ -124,6 +125,4 @@ void FunctionStats::printInstrMap() {
 		elem.second.printInstrStats();
 
 	}
-
-
 }

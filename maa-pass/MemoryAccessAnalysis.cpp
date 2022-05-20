@@ -45,6 +45,9 @@ struct maa : public FunctionPass {
 		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
+		func_stats.tid_calls = GAP->getThreadIDDependentInstructions();
+		func_stats.bid_calls = GAP->getBlockIDDependentInstructions();
+
 		func_stats.analyseFunction(F, &LI);
 
 		return false;

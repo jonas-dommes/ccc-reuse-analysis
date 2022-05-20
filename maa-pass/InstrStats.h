@@ -17,7 +17,7 @@ public:
 	llvm::Value * addr = NULL;
 
 
-	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI);
+	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, InstVector tid_calls);
 
 	void printInstrStats();
 
@@ -25,8 +25,8 @@ private:
 
 	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
 
-	void getIdDependence();
-
+	void getTidDependence(Instruction *I, InstVector tid_calls);
+	
 	unsigned int getAddr();
 
 
