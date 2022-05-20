@@ -13,7 +13,7 @@ public:
 
 	// DATA
 	std::map<llvm::Instruction*, InstrStats> instr_map;
-	InstVector tid_calls;
+	std::set<Instruction*> tid_calls;
 	InstVector bid_calls;
 
 
