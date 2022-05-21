@@ -27,6 +27,8 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	this->function_name = F.getName();
 
+	errs() << "\nAnalysing " << this->function_name << "\n";
+
 	this->isKernel(F);
 
 	if (!this->is_kernel) {

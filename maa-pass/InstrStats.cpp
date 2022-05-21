@@ -32,9 +32,15 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, std::set<Instruction
 void InstrStats::printInstrStats() {
 
 	if (this->is_load) {
-		printf("\t\tLoad Instr\n");
+		printf("\t\tLoad ");
 	} else if (this->is_store) {
-		printf("\t\tStore Instr\n");
+		printf("\t\tStore");
+	}
+	if (this->is_tid_dep) {
+		printf("\tTID");
+	}
+	if (this->is_bid_dep) {
+		printf("\tBID");
 	}
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
