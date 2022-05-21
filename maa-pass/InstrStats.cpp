@@ -42,6 +42,7 @@ void InstrStats::printInstrStats() {
 	if (this->is_bid_dep) {
 		printf("\tBID");
 	}
+	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
 	printf("\t\tAddr: %p\n", this->addr);
