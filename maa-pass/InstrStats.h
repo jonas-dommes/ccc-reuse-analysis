@@ -13,6 +13,8 @@ public:
 
 	bool is_tid_dep = false;
 	bool is_bid_dep = false;
+	bool is_blocksize_dep = false;
+	bool is_gridsize_dep = false;
 	bool first_use = false;            // Addr is used here for the first time
 	llvm::Value * addr = NULL;
 
@@ -25,7 +27,7 @@ private:
 
 	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
 
-	bool getTidDependence(Instruction *I, std::set<Instruction*> tid_calls);
+	void analyseDependence(Instruction *I, struct dependance_t dep_calls);
 
 	unsigned int getAddr();
 

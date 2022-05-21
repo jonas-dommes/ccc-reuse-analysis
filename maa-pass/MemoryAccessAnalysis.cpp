@@ -16,12 +16,12 @@
 
 #include "NVPTXUtilities.h"
 
-
-#include "MemoryAccessAnalysis.h"
 #include "PassStats.h"
 #include "FunctionStats.h"
 #include "InstrStats.h"
 #include "Util.h"
+
+#include "MemoryAccessAnalysis.h"
 
 using namespace llvm;
 
@@ -53,6 +53,16 @@ struct maa : public FunctionPass {
 		// Copy Bid dependent Instructions
 		for (auto& call : GAP->getBlockIDDependentInstructions()) {
 			func_stats.dep_calls.bid_calls.insert(call);
+		}
+
+		// Copy Blocksize dependent Instructions
+		for (auto& call : GAP->getBlockSizeDependentInstructions()) {
+			func_stats.dep_calls.blocksize_calls.insert(call);
+		}
+
+		// Copy Gridsize dependent Instructions
+		for (auto& call : GAP->getGridSizeDependentInstructions()) {
+			func_stats.dep_calls.gridsize_calls.insert(call);
 		}
 
 		// for (auto const &call : func_stats.dep_calls.tid_calls) {

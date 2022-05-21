@@ -29,6 +29,16 @@ public:
 	unsigned int unique_loads = 0;
 	unsigned int unique_stores = 0;
 	unsigned int unique_total = 0;
+
+	unsigned int l_num_tid = 0;
+	unsigned int l_num_bid = 0;
+	unsigned int l_num_bsd = 0;
+	unsigned int l_num_gsd = 0;
+	unsigned int s_num_tid = 0;
+	unsigned int s_num_bid = 0;
+	unsigned int s_num_bsd = 0;
+	unsigned int s_num_gsd = 0;
+
 	bool is_kernel = false;
 
 	// METHODS
@@ -36,10 +46,16 @@ public:
 
 	bool isKernel(llvm::Function &F);
 
+private:
+
+	void evaluateInstruction(InstrStats instr_stats, std::set<Value *> *load_addresses, std::set<Value *> *store_addresses);
+
+	void evaluateUniques(std::set<Value *> load_addresses, std::set<Value *> store_addresses);
+
 	void printFunctionStats();
+
 	void printInstrMap();
 
-private:
 };
 
 

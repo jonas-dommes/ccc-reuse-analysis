@@ -28,7 +28,7 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 	}
 
 	this->getLoopDepth(I, LI);
-	this->getTidDependence(I, dep_calls.tid_calls);
+	this->analyseDependence(I, dep_calls);
 }
 
 void InstrStats::printInstrStats() {
@@ -44,6 +44,12 @@ void InstrStats::printInstrStats() {
 	if (this->is_bid_dep) {
 		printf("\tBID");
 	}
+	if (this->is_blocksize_dep) {
+		printf("\tBSD");
+	}
+	if (this->is_gridsize_dep) {
+		printf("\tGSD");
+	}
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
@@ -58,12 +64,12 @@ unsigned int InstrStats::getLoopDepth(Instruction *I, LoopInfo *LI) {
 	return this->loop_depth;
 }
 
-bool InstrStats::getTidDependence(Instruction *I, std::set<Instruction*> tid_calls) {
+void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls) {
 
 	std::set<Instruction*> workset;
 	std::set<Instruction*> doneset;
 
-	errs() << "\nStarting Analysis of\n\t" << *I << "\n";
+	// errs() << "\nStarting Analysis of:\n\t" << *I << "\n";
 
 	// Fill Addr Operand of load/store instr in worklist
 	if (this->is_load) {
@@ -80,16 +86,29 @@ bool InstrStats::getTidDependence(Instruction *I, std::set<Instruction*> tid_cal
 		workset.erase(instr);
 		doneset.insert(instr);
 
-		// check if instr is in tid_calls
-		if (tid_calls.count(instr) > 0) {
+		// check if instr is in dep_calls
+		if (dep_calls.tid_calls.count(instr) > 0) {
 
 			this->is_tid_dep = true;
+			// errs() << "Is in tid_calls: " << *instr << "\n";
+		}
+		if (dep_calls.bid_calls.count(instr) > 0) {
 
-			errs() << "Is in tid_calls: " << *instr << "\n";
-			return true;
+			this->is_bid_dep = true;
+			// errs() << "Is in bid_calls: " << *instr << "\n";
+		}
+		if (dep_calls.blocksize_calls.count(instr) > 0) {
+
+			this->is_blocksize_dep = true;
+			// errs() << "Is in blocksize_calls: " << *instr << "\n";
+		}
+		if (dep_calls.gridsize_calls.count(instr) > 0) {
+
+			this->is_gridsize_dep = true;
+			// errs() << "Is in gridsize_calls: " << *instr << "\n";
 		}
 
-		errs() << *instr << " has Operands\n";
+		// errs() << *instr << " has Operands:\n";
 
 		// add operands to workset if not in doneset
 		for (auto &op : instr->operands()) {
@@ -103,22 +122,13 @@ bool InstrStats::getTidDependence(Instruction *I, std::set<Instruction*> tid_cal
 			if (doneset.count(op_instr) == 0) {
 
 				workset.insert(op_instr);
-				errs() << "\t" << *op_instr << "\n";
+				// errs() << "\t" << *op_instr << "\n";
 			}
 		}
 		// handle phis?
-
 	}
 
-	errs() << "\n-----------------Instruction was not relevant-----------------\n" << *I << "\n\n";
-
-	return false;
-
-
-
-
-	// if (std::find(&*tid_calls.begin(), &*tid_calls.end(), I) != &*tid_calls.end()) {
-	// 	this->is_tid_dep = true;
-	// 	errs() << *I << "\n";
+	// if (!(this->is_tid_dep || this->is_bid_dep || this->is_blocksize_dep || this->is_gridsize_dep)) {
+	// 	errs() << "\n-----------------Instruction was not relevant-----------------\n" << *I << "\n\n";
 	// }
 }
