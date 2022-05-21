@@ -27,12 +27,16 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	this->function_name = F.getName();
 
-	errs() << "\nAnalysing " << this->function_name << "\n";
-
 	this->isKernel(F);
 
 	if (!this->is_kernel) {
 		return;
+	}
+
+	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
+	errs() << "Printing " << this->tid_calls.size() << " TID_calls\n";
+	for (auto& call : this->tid_calls) {
+		errs() << *call << "\n";
 	}
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
