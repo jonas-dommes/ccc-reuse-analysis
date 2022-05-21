@@ -45,8 +45,19 @@ struct maa : public FunctionPass {
 		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
-		std::copy(GAP->getThreadIDDependentInstructions().begin(), GAP->getThreadIDDependentInstructions().end(), inserter(func_stats.tid_calls, func_stats.tid_calls.begin()));
-		std::copy(GAP->getBlockIDDependentInstructions().begin(), GAP->getBlockIDDependentInstructions().end(), inserter(func_stats.bid_calls, func_stats.bid_calls.begin()));
+		// Copy Tid dependent Instructions
+		for (auto& call : GAP->getThreadIDDependentInstructions()) {
+			func_stats.tid_calls.insert(call);
+		}
+
+		// Copy Bid dependent Instructions
+		for (auto& call : GAP->getBlockIDDependentInstructions()) {
+			func_stats.bid_calls.insert(call);
+		}
+
+		// for (auto const &call : func_stats.tid_calls) {
+		// 	errs() << *call << "\n";
+		// }
 
 		func_stats.analyseFunction(F, &LI);
 
