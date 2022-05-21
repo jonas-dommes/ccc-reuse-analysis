@@ -1,20 +1,26 @@
 #ifndef FUNCTIONSTATS_H
 #define FUNCTIONSTATS_H
 
-#include "InstrStats.h" // TODO still necessary?
-
+#include "FunctionStats.fwd.h"
+#include "InstrStats.fwd.h"
 
 
 #define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"
 
+struct dependance_t {
+	std::set<Instruction*> tid_calls;
+	std::set<Instruction*> bid_calls;
+	std::set<Instruction*> blocksize_calls;
+	std::set<Instruction*> gridsize_calls;
+};
 
 class FunctionStats {
 public:
 
 	// DATA
 	std::map<llvm::Instruction*, InstrStats> instr_map;
-	std::set<Instruction*> tid_calls;
-	std::set<Instruction*> bid_calls;
+
+	struct dependance_t dep_calls;
 
 
 	std::string function_name;

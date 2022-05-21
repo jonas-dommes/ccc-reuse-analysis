@@ -7,11 +7,13 @@
 #include "../llvm-rpc-passes/Common.h"
 #include "../llvm-rpc-passes/GridAnalysisPass.h"
 
+#include "FunctionStats.h"
+
 #include "InstrStats.h"
 
 using namespace llvm;
 
-void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, std::set<Instruction*> tid_calls) {
+void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls) {
 
 
 	if (isa<StoreInst>(I)) {
@@ -26,7 +28,7 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, std::set<Instruction
 	}
 
 	this->getLoopDepth(I, LI);
-	this->getTidDependence(I, tid_calls);
+	this->getTidDependence(I, dep_calls.tid_calls);
 }
 
 void InstrStats::printInstrStats() {

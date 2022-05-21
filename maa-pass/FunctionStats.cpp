@@ -12,6 +12,7 @@
 #include "../llvm-rpc-passes/Common.h"
 #include "../llvm-rpc-passes/GridAnalysisPass.h"
 #include "NVPTXUtilities.h"
+
 #include "InstrStats.h"
 
 #include "FunctionStats.h"
@@ -34,8 +35,12 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 	}
 
 	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
-	errs() << "Printing " << this->tid_calls.size() << " TID_calls\n";
-	for (auto& call : this->tid_calls) {
+	errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
+	for (auto& call : this->dep_calls.tid_calls) {
+		errs() << *call << "\n";
+	}
+	errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
+	for (auto& call : this->dep_calls.bid_calls) {
 		errs() << *call << "\n";
 	}
 
@@ -48,16 +53,10 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 		InstrStats instr_stats;
 
-		instr_stats.analyseInstr(&*I, LI, this->tid_calls);
+		instr_stats.analyseInstr(&*I, LI, this->dep_calls);
 
 
-
-		// if(isa<CallInst>(*I)) {
-		// 	errs() << *I << "\n\t";
-		// 	errs() << (I->getOperand(0)->getName()) << "\n";
-		// }
-
-
+		// TODO replace with stat collection from instr_stats
 		if (isa<StoreInst>(*I)) {
 
 			this->num_stores++;
@@ -74,6 +73,7 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	}
 
+	// TODO move to functions
 	this->unique_loads = load_addresses.size();
 	this->unique_stores = store_addresses.size();
 

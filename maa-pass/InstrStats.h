@@ -1,8 +1,8 @@
 #ifndef INSTRSTATS_H
 #define INSTRSTATS_H
 
-#include <llvm/Analysis/LoopInfo.h>
-
+// #include "InstrStats.fwd.h"
+// #include "FunctionStats.fwd.h"
 
 class InstrStats {
 
@@ -17,7 +17,7 @@ public:
 	llvm::Value * addr = NULL;
 
 
-	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, std::set<Instruction*> tid_calls);
+	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, struct dependance_t dep_calls);
 
 	void printInstrStats();
 

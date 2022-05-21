@@ -47,15 +47,15 @@ struct maa : public FunctionPass {
 
 		// Copy Tid dependent Instructions
 		for (auto& call : GAP->getThreadIDDependentInstructions()) {
-			func_stats.tid_calls.insert(call);
+			func_stats.dep_calls.tid_calls.insert(call);
 		}
 
 		// Copy Bid dependent Instructions
 		for (auto& call : GAP->getBlockIDDependentInstructions()) {
-			func_stats.bid_calls.insert(call);
+			func_stats.dep_calls.bid_calls.insert(call);
 		}
 
-		// for (auto const &call : func_stats.tid_calls) {
+		// for (auto const &call : func_stats.dep_calls.tid_calls) {
 		// 	errs() << *call << "\n";
 		// }
 
