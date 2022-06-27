@@ -13,6 +13,8 @@
 
 using namespace llvm;
 
+// public:
+
 void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls) {
 
 
@@ -28,8 +30,10 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 	}
 
 	this->getLoopDepth(I, LI);
+	this->isConditional(I);
 	this->analyseDependence(I, dep_calls);
 }
+
 
 void InstrStats::printInstrStats() {
 
@@ -50,6 +54,9 @@ void InstrStats::printInstrStats() {
 	if (this->is_gridsize_dep) {
 		printf("\tGSD");
 	}
+	if (this->is_conditional) {
+		printf("\tCOND");
+	}
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
@@ -57,12 +64,29 @@ void InstrStats::printInstrStats() {
 
 }
 
+
+// private:
+
 unsigned int InstrStats::getLoopDepth(Instruction *I, LoopInfo *LI) {
 
 	this->loop_depth = LI->getLoopDepth((I->getParent()));
 
 	return this->loop_depth;
 }
+
+
+void InstrStats::isConditional(llvm::Instruction *I) {
+
+	std::string name = I->getParent()->getName();
+
+	if (std::strncmp(name.c_str(), "if.", 3) == 0) {
+
+		// errs() << I->getParent()->getName() << "\n";
+		this->is_conditional = true;
+	}
+
+}
+
 
 void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls) {
 

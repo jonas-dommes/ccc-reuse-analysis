@@ -8,6 +8,7 @@ class InstrStats {
 
 public:
 	unsigned int loop_depth = 0;   // 0 -> no loop
+	bool is_conditional = false;
 	bool is_load = false;
 	bool is_store = false;
 
@@ -26,6 +27,8 @@ public:
 private:
 
 	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
+
+	void isConditional(llvm::Instruction *I);
 
 	void analyseDependence(Instruction *I, struct dependance_t dep_calls);
 
