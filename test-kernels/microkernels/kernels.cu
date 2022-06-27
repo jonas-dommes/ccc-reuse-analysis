@@ -39,6 +39,27 @@ clang++-9 -S -emit-llvm -O1 ~/ba/code/ccc-reuse-analysis/test-kernels/microkerne
 #define TILE_DIM 32
 #define BLOCK_ROWS 8
 
+
+// TEST KERNEL
+__global__ void TEST_nested_conditions(float *odata) {
+
+	int i = (int) odata[i];
+
+	if (i < 1000) {
+
+		i =  (int) odata[i];
+
+	}
+	if (i < 32) {
+
+		odata[i] = 10;
+	} else {
+
+		odata[i] *= -10;
+
+	}
+}
+
 // Data reuse of first few entries
 __global__ void kernel_a(float *odata, const float *idata, int work_per_thread) {
 
