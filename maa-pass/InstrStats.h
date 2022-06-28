@@ -18,6 +18,7 @@ public:
 	bool is_gridsize_dep = false;
 	bool first_use = false;            // Addr is used here for the first time
 	llvm::Value * addr = NULL;
+	std::string data_alias = "";
 
 
 	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, struct dependance_t dep_calls);
@@ -25,6 +26,8 @@ public:
 	void printInstrStats();
 
 private:
+
+	void getDataAlias(Instruction *I);
 
 	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
 

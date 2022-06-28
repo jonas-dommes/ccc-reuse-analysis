@@ -29,6 +29,7 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 		this->is_load = true;
 	}
 
+	this->getDataAlias(I);
 	this->getLoopDepth(I, LI);
 	this->isConditional(I);
 	this->analyseDependence(I, dep_calls);
@@ -60,12 +61,39 @@ void InstrStats::printInstrStats() {
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
-	printf("\t\tAddr: %p\n", this->addr);
+	printf("\t\tAddr: %p\t\t Alias: %s\n", this->addr, this->data_alias.c_str());
 
 }
 
 
 // private:
+
+void InstrStats::getDataAlias(Instruction *I) {
+
+	Instruction* data_instr;
+
+	if (this->is_load) {
+		data_instr = cast<Instruction>(I->getOperand(0));
+			// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
+	} else if (this->is_store) {
+		data_instr = cast<Instruction>(I->getOperand(1));
+	}
+
+	// TODO: Handle PHI nodes
+	while (isa<GetElementPtrInst>(data_instr) == false) {
+
+		data_instr = cast<Instruction>(data_instr->getOperand(0));
+		// errs() << "data_instr is: " << *data_instr << "\n";
+		// errs() << "has operand 0: " << *data_instr->getOperand(0) << "\n";
+	}
+
+	if (isa<GetElementPtrInst>(data_instr) == true) {
+		// errs() << "Found one: " << *data_instr << "\n";
+		this->data_alias = data_instr->getOperand(0)->getName();
+	}
+
+}
+
 
 unsigned int InstrStats::getLoopDepth(Instruction *I, LoopInfo *LI) {
 
@@ -95,7 +123,7 @@ void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls
 
 	// errs() << "\nStarting Analysis of:\n\t" << *I << "\n";
 
-	// Fill Addr Operand of load/store instr in worklist
+	// Add Addr Operand of load/store instr to worklist
 	if (this->is_load) {
 		workset.insert(cast<Instruction>(I->getOperand(0)));
 			// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
