@@ -68,6 +68,7 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 	this->printInstrMap();
 }
 
+
 bool FunctionStats::isKernel(Function &F) {
 
 	bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
@@ -80,6 +81,7 @@ bool FunctionStats::isKernel(Function &F) {
 	this->is_kernel = true;
 	return true;
 }
+
 
 void FunctionStats::evaluateInstruction(InstrStats instr_stats, std::set<Value *> *load_addresses, std::set<Value *> *store_addresses) {
 
@@ -119,6 +121,7 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats, std::set<Value *
 		}
 	}
 }
+
 
 void FunctionStats::evaluateUniques(std::set<Value *> load_addresses, std::set<Value *> store_addresses) {
 
