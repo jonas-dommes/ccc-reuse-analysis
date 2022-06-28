@@ -43,7 +43,7 @@ clang++-9 -S -emit-llvm -O1 ~/ba/code/ccc-reuse-analysis/test-kernels/microkerne
 // TEST KERNEL
 __global__ void TEST_nested_conditions(float *odata) {
 
-	int i = (int) odata[i];
+	int i = (int) odata[7];
 
 	if (i < 1000) {
 
