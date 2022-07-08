@@ -35,7 +35,7 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 	}
 
 	// // Print dep calls
-	// errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
+	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
 	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
 	// for (auto& call : this->dep_calls.tid_calls) {
 	// 	errs() << *call << "\n";
