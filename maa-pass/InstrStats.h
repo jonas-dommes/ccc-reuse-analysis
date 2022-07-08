@@ -19,6 +19,7 @@ public:
 	bool first_use = false;            // Addr is used here for the first time
 	llvm::Value * addr = NULL;
 	std::string data_alias = "";
+	std::string access_pattern = "";
 
 
 	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, struct dependance_t dep_calls);
@@ -36,6 +37,11 @@ private:
 	void analyseDependence(Instruction *I, struct dependance_t dep_calls);
 
 	unsigned int getAddr();
+
+	void analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls);
+
+	void visitOperand(llvm::Instruction *I, struct dependance_t dep_calls);
+
 
 
 

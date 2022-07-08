@@ -33,6 +33,7 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 	this->getLoopDepth(I, LI);
 	this->isConditional(I);
 	this->analyseDependence(I, dep_calls);
+	this->analyseAccessPattern(I, dep_calls);
 }
 
 
@@ -62,6 +63,7 @@ void InstrStats::printInstrStats() {
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
 	printf("\t\tAddr: %p\t\t Alias: %s\n", this->addr, this->data_alias.c_str());
+	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
 
 }
 
@@ -194,4 +196,155 @@ void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls
 	// if (!(this->is_tid_dep || this->is_bid_dep || this->is_blocksize_dep || this->is_gridsize_dep)) {
 	// 	errs() << "\n-----------------Instruction was not relevant-----------------\n" << *I << "\n\n";
 	// }
+}
+
+void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls) {
+
+	Instruction* data_instr;
+
+	// Get correct starting Operand from load/store
+	if (this->is_load) {
+		data_instr = cast<Instruction>(I->getOperand(0));
+	} else if (this->is_store) {
+		data_instr = cast<Instruction>(I->getOperand(1));
+	}
+
+	errs() << "\nCreating access pattern for: " << *data_instr << "\n";
+
+	// TODO: Handle PHI nodes
+	// Run through instructions to find GetElementPtrInst
+	while (isa<GetElementPtrInst>(data_instr) == false) {
+
+		errs() << "\tInstr has operand 0: " << *data_instr->getOperand(0) << "\n";
+
+		if (isa<Instruction>(*data_instr->getOperand(0))) {
+
+			data_instr = dyn_cast<Instruction>(data_instr->getOperand(0));
+			errs() << "\tdata_instr is now:   " << *data_instr << "\n";
+
+		// If Access is at Start of array, no GetElementPtrInst gets generated
+		} else if (isa<Argument>(*data_instr->getOperand(0))){
+
+			this->access_pattern.append(data_instr->getOperand(0)->getName());
+			this->access_pattern.append("[0]");
+			errs() << "Resulting pattern: " << this->access_pattern << "\n";
+			return;
+
+		} else {
+			errs() << "----------------NEVER REACHED BEFORE----------------\n";
+			return;
+		}
+	}
+
+	// Get Address Offset
+	if (isa<GetElementPtrInst>(data_instr) == true) {
+		errs() << "Found getElemtPtr: " << *data_instr << "\n";
+
+		// Call visitOperand if offset is dynamic
+		if (isa<Instruction>(data_instr->getOperand(1))) {
+
+			data_instr = cast<Instruction>(data_instr->getOperand(1));
+			errs() << "VisitOperand(" << *data_instr << ")\n" ;
+			visitOperand(data_instr, dep_calls);
+
+		// Retrieve constant value of offset
+		} else if (isa<ConstantInt>(*data_instr->getOperand(1))) {
+
+			ConstantInt *val = dyn_cast<ConstantInt>(data_instr->getOperand(1));
+			this->access_pattern.append(data_instr->getOperand(0)->getName());
+			this->access_pattern.append("[");
+			this->access_pattern.append(std::to_string(val->getSExtValue()));
+			this->access_pattern.append("]");
+		}
+		errs() << "Resulting pattern: " << this->access_pattern << "\n";
+	}
+}
+
+// Handles access patterns of Operands, rekursiv
+void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_calls) {
+
+	if (!isa<Instruction>(I)) {
+		errs() << "Is Argument\n";
+		return;
+	}
+
+	switch (I->getOpcode()) {
+		case Instruction::Add:
+			this->access_pattern.append("(");
+			errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
+			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
+			this->access_pattern.append(" + ");
+			errs() << "VisitOperand(" << *I->getOperand(1) << ")\n" ;
+			visitOperand(cast<Instruction>(I->getOperand(1)), dep_calls);
+			this->access_pattern.append(")");
+			break;
+		case Instruction::Sub:
+
+			break;
+		case Instruction::Mul:
+		errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
+			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
+			this->access_pattern.append(" * ");
+			errs() << "VisitOperand(" << *I->getOperand(1) << ")\n" ;
+			visitOperand(cast<Instruction>(I->getOperand(1)), dep_calls);
+
+			break;
+		case Instruction::UDiv:
+
+			break;
+		case Instruction::SDiv:
+
+			break;
+		case Instruction::URem:
+
+			break;
+		case Instruction::SRem:
+
+			break;
+		case Instruction::Shl:
+
+			break;
+		case Instruction::LShr:
+
+			break;
+		case Instruction::AShr:
+
+			break;
+		case Instruction::Or:
+
+			break;
+		case Instruction::And:
+
+			break;
+		case Instruction::Xor:
+
+			break;
+		case Instruction::Call:
+			// check if instr is in dep_calls
+			if (dep_calls.tid_calls.count(I) > 0) {
+				this->access_pattern.append("tid");
+			}
+			if (dep_calls.bid_calls.count(I) > 0) {
+				this->access_pattern.append("bid");
+			}
+			if (dep_calls.blocksize_calls.count(I) > 0) {
+				this->access_pattern.append("bDim");
+			}
+			if (dep_calls.gridsize_calls.count(I) > 0) {
+				this->access_pattern.append("gDim");
+			}
+
+			break;
+		case Instruction::Load:
+			this->access_pattern.append("Depends on loaded value");
+			break;
+		case Instruction::PHI:
+			this->access_pattern.append("Depends on Phi");
+			break;
+		default:
+			errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
+			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
+
+			break;
+	}
 }
