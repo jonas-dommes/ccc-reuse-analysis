@@ -74,21 +74,31 @@ void InstrStats::getDataAlias(Instruction *I) {
 
 	if (this->is_load) {
 		data_instr = cast<Instruction>(I->getOperand(0));
-			// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
+		// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
 	} else if (this->is_store) {
 		data_instr = cast<Instruction>(I->getOperand(1));
 	}
+	// errs() << "Before while for " << *data_instr << "\n";
 
 	// TODO: Handle PHI nodes
 	while (isa<GetElementPtrInst>(data_instr) == false) {
 
-		data_instr = cast<Instruction>(data_instr->getOperand(0));
-		// errs() << "data_instr is: " << *data_instr << "\n";
-		// errs() << "has operand 0: " << *data_instr->getOperand(0) << "\n";
+		// errs() << "\tInstr has operand 0: " << *data_instr->getOperand(0) << "\n";
+		// errs() << "\t\tOperand Type:      " << typeid(*data_instr->getOperand(0)).name() << "\n";
+
+		if (isa<Instruction>(*data_instr->getOperand(0))) {
+
+			data_instr = dyn_cast<Instruction>(data_instr->getOperand(0));
+			// errs() << "\tdata_instr is now:   " << *data_instr << "\n";
+
+		} else {
+			this->data_alias = data_instr->getOperand(0)->getName();
+			break;
+		}
 	}
 
 	if (isa<GetElementPtrInst>(data_instr) == true) {
-		// errs() << "Found one: " << *data_instr << "\n";
+		// errs() << "Found getElemtPtr: " << *data_instr << "\n";
 		this->data_alias = data_instr->getOperand(0)->getName();
 	}
 
@@ -116,6 +126,7 @@ void InstrStats::isConditional(llvm::Instruction *I) {
 }
 
 
+// TODO handle phis?
 void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls) {
 
 	std::set<Instruction*> workset;
@@ -126,7 +137,7 @@ void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls
 	// Add Addr Operand of load/store instr to worklist
 	if (this->is_load) {
 		workset.insert(cast<Instruction>(I->getOperand(0)));
-			// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
+		// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
 	} else if (this->is_store) {
 		workset.insert(cast<Instruction>(I->getOperand(1)));
 	}
