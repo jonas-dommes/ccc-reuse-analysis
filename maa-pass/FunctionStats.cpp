@@ -137,7 +137,7 @@ void FunctionStats::evaluateUniques(std::set<Value *> load_addresses, std::set<V
 
 void FunctionStats::printFunctionStats() {
 
-	printf("%s", this->function_name.c_str());
+	printf("\n%s", this->function_name.c_str());
 
 	if (this->is_kernel) {
 		printf(" is kernel function\n");
