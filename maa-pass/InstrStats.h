@@ -34,15 +34,13 @@ private:
 
 	void isConditional(llvm::Instruction *I);
 
-	void analyseDependence(Instruction *I, struct dependance_t dep_calls);
-
 	unsigned int getAddr();
 
 	void analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls);
 
 	void visitOperand(llvm::Instruction *I, struct dependance_t dep_calls);
 
-
+	void recursiveVisitOperand(llvm::Instruction *I, unsigned int op, struct dependance_t dep_calls);
 
 
 };

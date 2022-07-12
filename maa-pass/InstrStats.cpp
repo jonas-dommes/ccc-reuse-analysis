@@ -13,6 +13,9 @@
 
 using namespace llvm;
 
+#define OP0 0
+#define OP1 1
+
 // public:
 
 void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls) {
@@ -32,7 +35,6 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 	this->getDataAlias(I);
 	this->getLoopDepth(I, LI);
 	this->isConditional(I);
-	this->analyseDependence(I, dep_calls);
 	this->analyseAccessPattern(I, dep_calls);
 }
 
@@ -128,76 +130,6 @@ void InstrStats::isConditional(llvm::Instruction *I) {
 }
 
 
-// TODO handle phis?
-void InstrStats::analyseDependence(Instruction *I, struct dependance_t dep_calls) {
-
-	std::set<Instruction*> workset;
-	std::set<Instruction*> doneset;
-
-	// errs() << "\nStarting Analysis of:\n\t" << *I << "\n";
-
-	// Add Addr Operand of load/store instr to worklist
-	if (this->is_load) {
-		workset.insert(cast<Instruction>(I->getOperand(0)));
-		// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
-	} else if (this->is_store) {
-		workset.insert(cast<Instruction>(I->getOperand(1)));
-	}
-
-	// while there are instr in workset
-	while (!workset.empty()) {
-		// get and delete first instr from workset, add to doneset
-		Instruction* instr = *workset.begin();
-		workset.erase(instr);
-		doneset.insert(instr);
-
-		// check if instr is in dep_calls
-		if (dep_calls.tid_calls.count(instr) > 0) {
-
-			this->is_tid_dep = true;
-			// errs() << "Is in tid_calls: " << *instr << "\n";
-		}
-		if (dep_calls.bid_calls.count(instr) > 0) {
-
-			this->is_bid_dep = true;
-			// errs() << "Is in bid_calls: " << *instr << "\n";
-		}
-		if (dep_calls.blocksize_calls.count(instr) > 0) {
-
-			this->is_blocksize_dep = true;
-			// errs() << "Is in blocksize_calls: " << *instr << "\n";
-		}
-		if (dep_calls.gridsize_calls.count(instr) > 0) {
-
-			this->is_gridsize_dep = true;
-			// errs() << "Is in gridsize_calls: " << *instr << "\n";
-		}
-
-		// errs() << *instr << " has Operands:\n";
-
-		// add operands to workset if not in doneset
-		for (auto &op : instr->operands()) {
-			Instruction* op_instr = dyn_cast<Instruction>(op);
-
-			// Continue if Operand is no Instruction
-			if (op_instr == NULL) {
-				continue;
-			}
-
-			if (doneset.count(op_instr) == 0) {
-
-				workset.insert(op_instr);
-				// errs() << "\t" << *op_instr << "\n";
-			}
-		}
-		// handle phis?
-	}
-
-	// if (!(this->is_tid_dep || this->is_bid_dep || this->is_blocksize_dep || this->is_gridsize_dep)) {
-	// 	errs() << "\n-----------------Instruction was not relevant-----------------\n" << *I << "\n\n";
-	// }
-}
-
 void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls) {
 
 	Instruction* data_instr;
@@ -263,88 +195,131 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 // Handles access patterns of Operands, rekursiv
 void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_calls) {
 
-	if (!isa<Instruction>(I)) {
-		errs() << "Is Argument\n";
-		return;
-	}
+	// if (!isa<Instruction>(I)) {
+	// 	errs() << "Is Argument\n";
+	// 	return;
+	// }
+	//
+	// errs() << *I << " : " << I->getOpcode() << "\n";
 
 	switch (I->getOpcode()) {
 		case Instruction::Add:
 			this->access_pattern.append("(");
-			errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
-			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
+			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" + ");
-			errs() << "VisitOperand(" << *I->getOperand(1) << ")\n" ;
-			visitOperand(cast<Instruction>(I->getOperand(1)), dep_calls);
+			recursiveVisitOperand(I, OP1, dep_calls);
 			this->access_pattern.append(")");
 			break;
+
 		case Instruction::Sub:
-
+			this->access_pattern.append("(");
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" - ");
+			recursiveVisitOperand(I, OP1, dep_calls);
+			this->access_pattern.append(")");
 			break;
+
 		case Instruction::Mul:
-		errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
-			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
+			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" * ");
-			errs() << "VisitOperand(" << *I->getOperand(1) << ")\n" ;
-			visitOperand(cast<Instruction>(I->getOperand(1)), dep_calls);
-
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::UDiv:
-
-			break;
 		case Instruction::SDiv:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" / ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::URem:
-
-			break;
 		case Instruction::SRem:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" % ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::Shl:
-
-			break;
 		case Instruction::LShr:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" << ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::AShr:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" >> ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::Or:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" | ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::And:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" & ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::Xor:
-
+			recursiveVisitOperand(I, OP0, dep_calls);
+			this->access_pattern.append(" ^ ");
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
+
 		case Instruction::Call:
 			// check if instr is in dep_calls
 			if (dep_calls.tid_calls.count(I) > 0) {
 				this->access_pattern.append("tid");
+				this->is_tid_dep = true;
 			}
 			if (dep_calls.bid_calls.count(I) > 0) {
 				this->access_pattern.append("bid");
+				this->is_bid_dep = true;
 			}
 			if (dep_calls.blocksize_calls.count(I) > 0) {
 				this->access_pattern.append("bDim");
+				this->is_blocksize_dep = true;
 			}
 			if (dep_calls.gridsize_calls.count(I) > 0) {
 				this->access_pattern.append("gDim");
+				this->is_gridsize_dep = true;
 			}
-
 			break;
+
 		case Instruction::Load:
 			this->access_pattern.append("Depends on loaded value");
 			break;
+
 		case Instruction::PHI:
 			this->access_pattern.append("Depends on Phi");
 			break;
-		default:
-			errs() << "VisitOperand(" << *I->getOperand(0) << ")\n" ;
-			visitOperand(cast<Instruction>(I->getOperand(0)), dep_calls);
 
+		case Instruction::GetElementPtr:
+			break;
+
+		default:
+			recursiveVisitOperand(I, OP0, dep_calls);
 			break;
 	}
+}
+
+void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, struct dependance_t dep_calls) {
+
+	if (op >= I->getNumOperands()) {
+		errs() << "[recursiveVisitOperand] Accessing Operand that does not exist!\n";
+		return;
+	}
+
+	llvm::Instruction *instr;
+
+	if ((instr = dyn_cast<Instruction>(I->getOperand(op)))) {
+		errs() << "VisitOperand(" << *I->getOperand(op) << ")\n" ;
+		visitOperand(instr, dep_calls);
+	}
+
+
 }
