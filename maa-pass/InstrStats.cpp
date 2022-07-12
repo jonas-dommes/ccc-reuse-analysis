@@ -150,74 +150,74 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_calls) {
 
 	switch (I->getOpcode()) {
-		case Instruction::Add:
+		case Instruction::Add: {
 			this->access_pattern.append("(");
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" + ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			this->access_pattern.append(")");
 			break;
-
-		case Instruction::Sub:
+		}
+		case Instruction::Sub: {
 			this->access_pattern.append("(");
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" - ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			this->access_pattern.append(")");
 			break;
-
-		case Instruction::Mul:
+		}
+		case Instruction::Mul: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" * ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
+		}
 		case Instruction::UDiv:
-		case Instruction::SDiv:
+		case Instruction::SDiv: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" / ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
+		}
 		case Instruction::URem:
-		case Instruction::SRem:
+		case Instruction::SRem: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" % ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
+		}
 		case Instruction::Shl:
-		case Instruction::LShr:
+		case Instruction::LShr: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" << ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		case Instruction::AShr:
+		}
+		case Instruction::AShr: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" >> ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		case Instruction::Or:
+		}
+		case Instruction::Or: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" | ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		case Instruction::And:
+		}
+		case Instruction::And: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" & ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		case Instruction::Xor:
+		}
+		case Instruction::Xor: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			this->access_pattern.append(" ^ ");
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		case Instruction::Call:
+		}
+		case Instruction::Call: {
 			// check if instr is in dep_calls
 			if (dep_calls.tid_calls.count(I) > 0) {
 				this->access_pattern.append("tid");
@@ -235,24 +235,29 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 				this->access_pattern.append("gDim");
 				this->is_gridsize_dep = true;
 			}
-			break;
 
-		case Instruction::Load:
+			StringRef name = cast<CallInst>(I)->getCalledFunction()->getName();
+			this->access_pattern.append(name.take_back(2));
+
+			break;
+		}
+		case Instruction::Load: {
 			this->access_pattern.append("Depends on loaded value");
 			break;
-
-		case Instruction::PHI:
+		}
+		case Instruction::PHI: {
 			this->access_pattern.append("Depends on Phi");
 			break;
-
-		case Instruction::GetElementPtr:
+		}
+		case Instruction::GetElementPtr: {
 			// errs() << "Found getElemtPtr: " << *I << "\n";
 			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
-
-		default:
+		}
+		default: {
 			recursiveVisitOperand(I, OP0, dep_calls);
 			break;
+		}
 	}
 }
 
@@ -271,7 +276,7 @@ void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, st
 		// errs() << "VisitOperand(" << *I->getOperand(op) << ")\n" ;
 		visitOperand(instr, dep_calls);
 
-	// Handle GetElementPtr Instructions to constant values
+		// Handle GetElementPtr Instructions to constant values
 	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
 
 		this->access_pattern.append(I->getOperand(OP0)->getName());
@@ -279,7 +284,7 @@ void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, st
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
 		this->access_pattern.append("]");
 
-	// Handle use of argument Variables
+		// Handle use of argument Variables
 	} else if (isa<Argument>(*I->getOperand(op))){
 
 		this->access_pattern.append(I->getOperand(op)->getName());
