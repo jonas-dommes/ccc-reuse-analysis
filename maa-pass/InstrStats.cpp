@@ -132,6 +132,8 @@ void InstrStats::isConditional(llvm::Instruction *I) {
 
 void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls) {
 
+	// errs() << "\nCreating access pattern for: " << *I << "\n";
+
 	Instruction* data_instr;
 
 	// Get correct starting Operand from load/store
@@ -141,66 +143,11 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 		data_instr = cast<Instruction>(I->getOperand(1));
 	}
 
-	errs() << "\nCreating access pattern for: " << *data_instr << "\n";
-
-	// TODO: Handle PHI nodes
-	// Run through instructions to find GetElementPtrInst
-	while (isa<GetElementPtrInst>(data_instr) == false) {
-
-		errs() << "\tInstr has operand 0: " << *data_instr->getOperand(0) << "\n";
-
-		if (isa<Instruction>(*data_instr->getOperand(0))) {
-
-			data_instr = dyn_cast<Instruction>(data_instr->getOperand(0));
-			errs() << "\tdata_instr is now:   " << *data_instr << "\n";
-
-		// If Access is at Start of array, no GetElementPtrInst gets generated
-		} else if (isa<Argument>(*data_instr->getOperand(0))){
-
-			this->access_pattern.append(data_instr->getOperand(0)->getName());
-			this->access_pattern.append("[0]");
-			errs() << "Resulting pattern: " << this->access_pattern << "\n";
-			return;
-
-		} else {
-			errs() << "----------------NEVER REACHED BEFORE----------------\n";
-			return;
-		}
-	}
-
-	// Get Address Offset
-	if (isa<GetElementPtrInst>(data_instr) == true) {
-		errs() << "Found getElemtPtr: " << *data_instr << "\n";
-
-		// Call visitOperand if offset is dynamic
-		if (isa<Instruction>(data_instr->getOperand(1))) {
-
-			data_instr = cast<Instruction>(data_instr->getOperand(1));
-			errs() << "VisitOperand(" << *data_instr << ")\n" ;
-			visitOperand(data_instr, dep_calls);
-
-		// Retrieve constant value of offset
-		} else if (isa<ConstantInt>(*data_instr->getOperand(1))) {
-
-			ConstantInt *val = dyn_cast<ConstantInt>(data_instr->getOperand(1));
-			this->access_pattern.append(data_instr->getOperand(0)->getName());
-			this->access_pattern.append("[");
-			this->access_pattern.append(std::to_string(val->getSExtValue()));
-			this->access_pattern.append("]");
-		}
-		errs() << "Resulting pattern: " << this->access_pattern << "\n";
-	}
+	visitOperand(data_instr, dep_calls);
 }
 
 // Handles access patterns of Operands, rekursiv
 void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_calls) {
-
-	// if (!isa<Instruction>(I)) {
-	// 	errs() << "Is Argument\n";
-	// 	return;
-	// }
-	//
-	// errs() << *I << " : " << I->getOpcode() << "\n";
 
 	switch (I->getOpcode()) {
 		case Instruction::Add:
@@ -299,6 +246,8 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 			break;
 
 		case Instruction::GetElementPtr:
+			// errs() << "Found getElemtPtr: " << *I << "\n";
+			recursiveVisitOperand(I, OP1, dep_calls);
 			break;
 
 		default:
@@ -315,11 +264,29 @@ void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, st
 	}
 
 	llvm::Instruction *instr;
+	llvm::ConstantInt *val;
 
 	if ((instr = dyn_cast<Instruction>(I->getOperand(op)))) {
-		errs() << "VisitOperand(" << *I->getOperand(op) << ")\n" ;
+
+		// errs() << "VisitOperand(" << *I->getOperand(op) << ")\n" ;
 		visitOperand(instr, dep_calls);
+
+	// Handle GetElementPtr Instructions to constant values
+	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
+
+		this->access_pattern.append(I->getOperand(OP0)->getName());
+		this->access_pattern.append("[");
+		this->access_pattern.append(std::to_string(val->getSExtValue()));
+		this->access_pattern.append("]");
+
+	// Handle use of argument Variables
+	} else if (isa<Argument>(*I->getOperand(op))){
+
+		this->access_pattern.append(I->getOperand(op)->getName());
+		this->access_pattern.append("[0]");
+
+	} else {
+
+		errs() << "[recursiveVisitOperand] Neither Case matched\n";
 	}
-
-
 }
