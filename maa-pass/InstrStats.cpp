@@ -144,6 +144,8 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 	}
 
 	visitOperand(data_instr, dep_calls);
+
+	// errs() << "\t--> " << this->access_pattern << "\n";
 }
 
 // Handles access patterns of Operands, rekursiv
@@ -273,16 +275,23 @@ void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, st
 
 	if ((instr = dyn_cast<Instruction>(I->getOperand(op)))) {
 
-		// errs() << "VisitOperand(" << *I->getOperand(op) << ")\n" ;
+		// errs() << "VisitOperand(" << *I->getOperand(op) << "  )\n" ;
 		visitOperand(instr, dep_calls);
 
 	// Handle GetElementPtr Instructions to constant values
-	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
+} else if (isa<GetElementPtrInst>(I) && (val = dyn_cast<ConstantInt>((I->getOperand(OP1))))) {
 
 		this->access_pattern.append(I->getOperand(OP0)->getName());
 		this->access_pattern.append("[");
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
 		this->access_pattern.append("]");
+
+	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
+
+		// this->access_pattern.append(I->getOperand(op)->getName());
+		// this->access_pattern.append("[");
+		this->access_pattern.append(std::to_string(val->getSExtValue()));
+		// this->access_pattern.append("]");
 
 	// Handle use of argument Variables
 	} else if (isa<Argument>(*I->getOperand(op))){
