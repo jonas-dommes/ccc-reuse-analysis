@@ -28,7 +28,7 @@ public:
 
 private:
 
-	std::set<Instruction*> visited_phis;
+	std::map<Instruction*, llvm::BasicBlock*> visited_phis;
 
 	void getDataAlias(Instruction *I);
 

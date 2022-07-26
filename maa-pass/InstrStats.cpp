@@ -246,25 +246,30 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 			break;
 		}
 		case Instruction::Load: {
-			this->access_pattern.append("Depends on loaded value");
+			this->access_pattern.append("DataDependency");
 			break;
 		}
 		case Instruction::PHI: {
 
-			if (this->visited_phis.count(I) < 0) {
+			// errs() << *I << " is visited: " << this->visited_phis.count(I) << "\n";
+
+			if (this->visited_phis.count(I) == 0) {
+
+				this->visited_phis.insert(I, I->getIncomingBlock(OP0));
 
 				this->access_pattern.append("PHI{");
-				errs() << "Phi Op 0: " << *I->getOperand(0) << "\n";
-				errs() << "Phi Op 1: " << *I->getOperand(1) << "\n";
+				// errs() << "Phi Op 0: " << *I->getOperand(0) << "\n";
+				// errs() << "Phi Op 1: " << *I->getOperand(1) << "\n";
 
 				recursiveVisitOperand(I, OP0, dep_calls);
-				this->access_pattern.append(" OR ");
+				this->access_pattern.append(", ");
 
 				recursiveVisitOperand(I, OP1, dep_calls);
 				this->access_pattern.append("}");
-
-				this->visited_phis.insert(I);
-
+			} else {
+				// revisited ->
+				if
+				this->access_pattern.append("R");
 			}
 
 			break;
