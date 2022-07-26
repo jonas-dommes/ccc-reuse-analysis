@@ -28,6 +28,8 @@ public:
 
 private:
 
+	std::set<Instruction*> visited_phis;
+
 	void getDataAlias(Instruction *I);
 
 	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);

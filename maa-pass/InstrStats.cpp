@@ -143,6 +143,8 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 		data_instr = cast<Instruction>(I->getOperand(1));
 	}
 
+	visited_phis.clear();
+
 	visitOperand(data_instr, dep_calls);
 
 	// errs() << "\t--> " << this->access_pattern << "\n";
@@ -248,13 +250,22 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 			break;
 		}
 		case Instruction::PHI: {
-			this->access_pattern.append("PHI{");
-			errs() << "Phi Op 0: " << *I->getOperand(0) << "\n";
-			errs() << "Phi Op 1: " << *I->getOperand(1) << "\n";
-			recursiveVisitOperand(I, OP0, dep_calls);
-			this->access_pattern.append(" OR ");
-			// recursiveVisitOperand(I, OP1, dep_calls);
-			this->access_pattern.append("}");
+
+			if (this->visited_phis.count(I) < 0) {
+
+				this->access_pattern.append("PHI{");
+				errs() << "Phi Op 0: " << *I->getOperand(0) << "\n";
+				errs() << "Phi Op 1: " << *I->getOperand(1) << "\n";
+
+				recursiveVisitOperand(I, OP0, dep_calls);
+				this->access_pattern.append(" OR ");
+
+				recursiveVisitOperand(I, OP1, dep_calls);
+				this->access_pattern.append("}");
+
+				this->visited_phis.insert(I);
+
+			}
 
 			break;
 		}
