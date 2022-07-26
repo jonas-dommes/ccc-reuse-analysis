@@ -279,19 +279,17 @@ void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, st
 		visitOperand(instr, dep_calls);
 
 	// Handle GetElementPtr Instructions to constant values
-} else if (isa<GetElementPtrInst>(I) && (val = dyn_cast<ConstantInt>((I->getOperand(OP1))))) {
+	} else if (isa<GetElementPtrInst>(I) && (val = dyn_cast<ConstantInt>((I->getOperand(OP1))))) {
 
 		this->access_pattern.append(I->getOperand(OP0)->getName());
 		this->access_pattern.append("[");
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
 		this->access_pattern.append("]");
 
+	// Handle Constants
 	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
 
-		// this->access_pattern.append(I->getOperand(op)->getName());
-		// this->access_pattern.append("[");
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
-		// this->access_pattern.append("]");
 
 	// Handle use of argument Variables
 	} else if (isa<Argument>(*I->getOperand(op))){
