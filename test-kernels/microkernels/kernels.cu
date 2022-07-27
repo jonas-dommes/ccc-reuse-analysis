@@ -67,6 +67,45 @@ __global__ void TEST_nested_conditions(float *odata) {
 	}
 }
 
+__global__ void TEST_for_loops(float *odata, const float *idata) {
+
+	int offset = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = 0; i < 32; i++) {
+		int index = i * blockDim.x + offset;
+		odata[index] = idata[index] * idata[index] - 1;
+	}
+
+	for (int j = 0; j < 32; j++) {
+		int index = j * blockDim.x + offset;
+		odata[index] = idata[index] * idata[index] - 1;
+	}
+
+	if (offset < 32) {
+		odata[offset] = -odata[offset];
+	}
+}
+
+__global__ void TEST_nested_for_loops(float *odata, const float *idata) {
+
+	int offset = blockIdx.x * blockDim.x + threadIdx.x;
+
+	for (int i = 0; i < 32; i++) {
+		int index = i * blockDim.x + offset;
+		odata[index] = idata[index] * idata[index] - 1;
+
+
+		for (int j = 0; j < 32; j++) {
+			int index = j * blockDim.x + offset;
+			odata[index] = idata[index] * idata[index] - 1;
+		}
+	}
+
+	if (offset < 32) {
+		odata[offset] = -odata[offset];
+	}
+}
+
 // Data reuse of first few entries
 __global__ void kernel_a(float *odata, const float *idata, int work_per_thread) {
 
@@ -144,11 +183,11 @@ __global__ void reduce3(int *d_data) {
 // Used as reference case representing best effective bandwidth.
 __global__ void copy(float *odata, const float *idata)
 {
-	 int x = blockIdx.x * TILE_DIM + threadIdx.x;
-	 int y = blockIdx.y * TILE_DIM + threadIdx.y;
-	 int width = gridDim.x * TILE_DIM;
+	int x = blockIdx.x * TILE_DIM + threadIdx.x;
+	int y = blockIdx.y * TILE_DIM + threadIdx.y;
+	int width = gridDim.x * TILE_DIM;
 
-	 for (int j = 0; j < TILE_DIM; j+= BLOCK_ROWS) odata[(y+j)*width + x] = idata[(y+j)*width + x];
+	for (int j = 0; j < TILE_DIM; j+= BLOCK_ROWS) odata[(y+j)*width + x] = idata[(y+j)*width + x];
 }
 
 // 2d simple transpose
