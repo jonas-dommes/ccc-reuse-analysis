@@ -10,6 +10,7 @@
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 #include <llvm/Analysis/LoopInfo.h>
+#include "llvm/Transforms/Utils.h"
 
 #include "../llvm-rpc-passes/Common.h"
 #include "../llvm-rpc-passes/GridAnalysisPass.h"
@@ -35,6 +36,7 @@ struct maa : public FunctionPass {
 		AU.setPreservesCFG();
 		AU.addRequired<LoopInfoWrapperPass>();
 		AU.addRequired<GridAnalysisPass>();
+		AU.addRequiredID(LoopSimplifyID);
 	}
 
 
