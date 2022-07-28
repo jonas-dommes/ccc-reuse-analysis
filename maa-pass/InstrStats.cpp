@@ -253,7 +253,9 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 
 			// errs() << *I << " is visited: " << this->visited_phis.count(I) << "\n";
 
-			if (this->visited_phis.insert(std::make_pair(I, I->getParent()))) {
+			if (this->visited_phis.count(I) == 0) {
+
+				this->visited_phis.insert(std::make_pair(I, I->getParent()));
 
 				this->access_pattern.append("PHI{");
 				// errs() << "Phi Op 0: " << *I->getOperand(0) << "\n";
@@ -269,7 +271,7 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 			} else {
 				// revisited ->
 
-				this->access_pattern.append("R");
+				this->access_pattern.append("INC");
 			}
 
 			break;
