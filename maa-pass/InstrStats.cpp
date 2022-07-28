@@ -253,8 +253,7 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 
 			if (this->visited_phis.count(I) == 0) {
 
-				// TODO I->getParent() not needed
-				this->visited_phis.insert(std::make_pair(I, I->getParent()));
+				this->visited_phis.insert(I);
 
 				this->access_pattern.append("PHI{");
 				recursiveVisitOperand(I, OP0, dep_calls);
@@ -264,7 +263,7 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 
 			// Phi not yet present in map
 			} else {
-				
+
 				this->access_pattern.append("INC");
 			}
 
