@@ -32,7 +32,7 @@ struct maa : public FunctionPass {
 	maa() : FunctionPass(ID) {}
 
 	void getAnalysisUsage(AnalysisUsage &AU) const override {
-		AU.setPreservesCFG();
+		// AU.setPreservesCFG();
 		AU.addRequired<LoopInfoWrapperPass>();
 		AU.addRequired<GridAnalysisPass>();
 	}
@@ -42,6 +42,7 @@ struct maa : public FunctionPass {
 
 		FunctionStats func_stats;
 
+		// getAnalysis<LoopSimplifyID>(F);
 		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
