@@ -65,6 +65,14 @@ void FunctionStats::analyseFunction(Function &F){
 	// for (auto& call : this->dep_calls.bid_calls) {
 	// 	errs() << *call << "\n";
 	// }
+	// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
+	// for (auto& call : this->dep_calls.blocksize_calls) {
+	// 	errs() << *call << "\n";
+	// }
+	// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
+	// for (auto& call : this->dep_calls.gridsize_calls) {
+	// 	errs() << *call << "\n";
+	// }
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
