@@ -2,7 +2,7 @@
 #define INSTRSTATS_H
 
 // #include "InstrStats.fwd.h"
-// #include "FunctionStats.fwd.h"
+#include "FunctionStats.fwd.h"
 
 #define OP0 0
 #define OP1 1
@@ -30,7 +30,7 @@ private:
 
 // METHODS
 public:
-	void analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls);
+	void analyseInstr(Instruction *I, FunctionStats *func_stats);
 	void printInstrStats();
 
 private:

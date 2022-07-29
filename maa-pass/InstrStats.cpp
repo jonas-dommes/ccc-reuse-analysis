@@ -15,7 +15,7 @@ using namespace llvm;
 
 
 
-void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls) {
+void InstrStats::analyseInstr(Instruction *I, FunctionStats *func_stats) {
 
 
 	if (isa<StoreInst>(I)) {
@@ -30,9 +30,9 @@ void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t 
 	}
 
 	this->getDataAlias(I);
-	this->getLoopDepth(I, LI);
+	this->getLoopDepth(I, func_stats->LI);
 	this->isConditional(I);
-	this->analyseAccessPattern(I, dep_calls);
+	this->analyseAccessPattern(I, func_stats->dep_calls);
 }
 
 

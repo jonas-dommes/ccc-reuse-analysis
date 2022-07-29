@@ -75,7 +75,7 @@ void FunctionStats::analyseFunction(Function &F){
 
 		InstrStats instr_stats;
 
-		instr_stats.analyseInstr(&*I, LI, this->dep_calls);
+		instr_stats.analyseInstr(&*I, this);
 		this->evaluateInstruction(instr_stats);
 
 		instr_map[&*I] = instr_stats;

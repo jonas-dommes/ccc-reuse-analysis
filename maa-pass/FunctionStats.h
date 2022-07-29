@@ -19,6 +19,8 @@ class FunctionStats {
 // DATA
 
 public:
+	struct dependance_t dep_calls;
+	LoopInfo *LI;
 	std::map<Instruction*, InstrStats> instr_map;
 
 	std::string function_name;
@@ -43,9 +45,6 @@ public:
 
 	bool is_kernel = false;
 
-protected:
-	struct dependance_t dep_calls;
-	LoopInfo *LI;
 
 // METHODS
 public:
