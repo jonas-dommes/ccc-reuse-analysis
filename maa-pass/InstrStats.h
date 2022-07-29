@@ -22,6 +22,7 @@ public:
 	std::string data_alias = "";
 	std::string access_pattern = "";
 
+private:
 	std::set<Instruction*> visited_phis;
 
 // METHODS
