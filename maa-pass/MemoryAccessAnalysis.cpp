@@ -40,35 +40,11 @@ struct maa : public FunctionPass {
 
 	bool runOnFunction(Function &F) override {
 
-		FunctionStats func_stats;
-
 		// getAnalysis<LoopSimplifyID>(F);
 		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
-		// Copy Tid dependent Instructions
-		for (auto& call : GAP->getThreadIDDependentInstructions()) {
-			func_stats.dep_calls.tid_calls.insert(call);
-		}
-
-		// Copy Bid dependent Instructions
-		for (auto& call : GAP->getBlockIDDependentInstructions()) {
-			func_stats.dep_calls.bid_calls.insert(call);
-		}
-
-		// Copy Blocksize dependent Instructions
-		for (auto& call : GAP->getBlockSizeDependentInstructions()) {
-			func_stats.dep_calls.blocksize_calls.insert(call);
-		}
-
-		// Copy Gridsize dependent Instructions
-		for (auto& call : GAP->getGridSizeDependentInstructions()) {
-			func_stats.dep_calls.gridsize_calls.insert(call);
-		}
-
-		// for (auto const &call : func_stats.dep_calls.tid_calls) {
-		// 	errs() << *call << "\n";
-		// }
+		FunctionStats func_stats(GAP);
 
 		func_stats.analyseFunction(F, &LI);
 

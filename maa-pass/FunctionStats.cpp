@@ -20,11 +20,29 @@
 
 using namespace llvm;
 
-void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
+FunctionStats::FunctionStats(GridAnalysisPass *GAP) {
+	// Copy Tid dependent Instructions
+	for (auto& call : GAP->getThreadIDDependentInstructions()) {
+		this->dep_calls.tid_calls.insert(call);
+	}
 
-	std::set<Value *> load_addresses;
-	std::set<Value *> store_addresses;
-	std::map<Instruction*, InstrStats> instr_map;
+	// Copy Bid dependent Instructions
+	for (auto& call : GAP->getBlockIDDependentInstructions()) {
+		this->dep_calls.bid_calls.insert(call);
+	}
+
+	// Copy Blocksize dependent Instructions
+	for (auto& call : GAP->getBlockSizeDependentInstructions()) {
+		this->dep_calls.blocksize_calls.insert(call);
+	}
+
+	// Copy Gridsize dependent Instructions
+	for (auto& call : GAP->getGridSizeDependentInstructions()) {
+		this->dep_calls.gridsize_calls.insert(call);
+	}
+}
+
+void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	this->function_name = F.getName();
 
@@ -62,7 +80,6 @@ void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
 
 	this->evaluateUniques(load_addresses, store_addresses);
 
-	this->instr_map = instr_map;
 
 	this->printFunctionStats();
 	this->printInstrMap();
@@ -147,9 +164,9 @@ void FunctionStats::printFunctionStats() {
 
 		printf("\t%6s | %4s | %4s | %4s | %4s | %4s | %4s \n", "", "num", "uni", "tid", "bid", "bsd", "gsd");
 		printf("\t-------------------------------------------------\n");
-		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
+		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads ", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "stores", this->num_stores, this->unique_stores, this->s_num_tid, this->s_num_bid, this->s_num_bsd, this->s_num_gsd);
-		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n\n", "total", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
+		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n\n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
 
 
 	} else {
