@@ -54,8 +54,8 @@ public:
 
 private:
 	bool isKernel(Function &F);
-	void evaluateInstruction(InstrStats instr_stats, std::set<Value *> *load_addresses, std::set<Value *> *store_addresses);
-	void evaluateUniques(std::set<Value *> load_addresses, std::set<Value *> store_addresses);
+	void evaluateInstruction(InstrStats instr_stats);
+	void evaluateUniques();
 	void printFunctionStats();
 	void printInstrMap();
 };

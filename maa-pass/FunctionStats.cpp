@@ -76,12 +76,12 @@ void FunctionStats::analyseFunction(Function &F){
 		InstrStats instr_stats;
 
 		instr_stats.analyseInstr(&*I, LI, this->dep_calls);
-		this->evaluateInstruction(instr_stats, &load_addresses, &store_addresses);
+		this->evaluateInstruction(instr_stats);
 
 		instr_map[&*I] = instr_stats;
 	}
 
-	this->evaluateUniques(load_addresses, store_addresses);
+	this->evaluateUniques();
 
 
 	this->printFunctionStats();
@@ -103,12 +103,12 @@ bool FunctionStats::isKernel(Function &F) {
 }
 
 
-void FunctionStats::evaluateInstruction(InstrStats instr_stats, std::set<Value *> *load_addresses, std::set<Value *> *store_addresses) {
+void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
 
 	if (instr_stats.is_load) {
 
 		this->num_loads++;
-		load_addresses->insert(instr_stats.addr);
+		this->load_addresses.insert(instr_stats.addr);
 
 		if (instr_stats.is_tid_dep) {
 			this->l_num_tid++;
@@ -125,7 +125,7 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats, std::set<Value *
 	} else if (instr_stats.is_store) {
 
 		this->num_stores++;
-		store_addresses->insert(instr_stats.addr);
+		this->store_addresses.insert(instr_stats.addr);
 
 		if (instr_stats.is_tid_dep) {
 			this->s_num_tid++;
@@ -143,10 +143,10 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats, std::set<Value *
 }
 
 
-void FunctionStats::evaluateUniques(std::set<Value *> load_addresses, std::set<Value *> store_addresses) {
+void FunctionStats::evaluateUniques() {
 
-	this->unique_loads = load_addresses.size();
-	this->unique_stores = store_addresses.size();
+	this->unique_loads = this->load_addresses.size();
+	this->unique_stores = this->store_addresses.size();
 
 	// Get total unique loads and stores TODO proper addresses
 	std::set<Value *> total;
