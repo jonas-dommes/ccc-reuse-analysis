@@ -13,10 +13,7 @@
 
 using namespace llvm;
 
-#define OP0 0
-#define OP1 1
 
-// public:
 
 void InstrStats::analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls) {
 

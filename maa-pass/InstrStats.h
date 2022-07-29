@@ -4,6 +4,9 @@
 // #include "InstrStats.fwd.h"
 // #include "FunctionStats.fwd.h"
 
+#define OP0 0
+#define OP1 1
+
 class InstrStats{
 
 // DATA

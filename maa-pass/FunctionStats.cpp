@@ -23,7 +23,7 @@ using namespace llvm;
 FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
 
 	this->LI = LI;
-	
+
 	// Copy Tid dependent Instructions
 	for (auto& call : GAP->getThreadIDDependentInstructions()) {
 		this->dep_calls.tid_calls.insert(call);

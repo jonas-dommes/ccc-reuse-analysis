@@ -42,7 +42,7 @@ public:
 	unsigned int s_num_gsd = 0;
 
 	bool is_kernel = false;
-	
+
 protected:
 	struct dependance_t dep_calls;
 	LoopInfo *LI;
