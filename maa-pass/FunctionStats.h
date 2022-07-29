@@ -19,9 +19,10 @@ class FunctionStats {
 // DATA
 protected:
 	struct dependance_t dep_calls;
+	LoopInfo *LI;
 
 private:
-	std::map<llvm::Instruction*, InstrStats> instr_map;
+	std::map<Instruction*, InstrStats> instr_map;
 
 	std::string function_name;
 
@@ -47,11 +48,11 @@ private:
 
 // METHODS
 public:
-	FunctionStats(GridAnalysisPass *GAP);
-	void analyseFunction(llvm::Function &F, llvm::LoopInfo *LI);
+	FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI);
+	void analyseFunction(Function &F);
 
 private:
-	bool isKernel(llvm::Function &F);
+	bool isKernel(Function &F);
 	void evaluateInstruction(InstrStats instr_stats, std::set<Value *> *load_addresses, std::set<Value *> *store_addresses);
 	void evaluateUniques(std::set<Value *> load_addresses, std::set<Value *> store_addresses);
 	void printFunctionStats();

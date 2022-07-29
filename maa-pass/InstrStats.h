@@ -18,7 +18,7 @@ public:
 	bool is_blocksize_dep = false;
 	bool is_gridsize_dep = false;
 	bool first_use = false;            // Addr is used here for the first time
-	llvm::Value * addr = NULL;
+	Value * addr = NULL;
 	std::string data_alias = "";
 	std::string access_pattern = "";
 
@@ -26,17 +26,17 @@ public:
 
 // METHODS
 public:
-	void analyseInstr(llvm::Instruction *I, llvm::LoopInfo *LI, struct dependance_t dep_calls);
+	void analyseInstr(Instruction *I, LoopInfo *LI, struct dependance_t dep_calls);
 	void printInstrStats();
 
 private:
 	void getDataAlias(Instruction *I);
-	unsigned int getLoopDepth(llvm::Instruction *I, llvm::LoopInfo *LI);
-	void isConditional(llvm::Instruction *I);
+	unsigned int getLoopDepth(Instruction *I, LoopInfo *LI);
+	void isConditional(Instruction *I);
 	unsigned int getAddr();
-	void analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls);
-	void visitOperand(llvm::Instruction *I, struct dependance_t dep_calls);
-	void recursiveVisitOperand(llvm::Instruction *I, unsigned int op, struct dependance_t dep_calls);
+	void analyseAccessPattern(Instruction *I, struct dependance_t dep_calls);
+	void visitOperand(Instruction *I, struct dependance_t dep_calls);
+	void recursiveVisitOperand(Instruction *I, unsigned int op, struct dependance_t dep_calls);
 };
 
 

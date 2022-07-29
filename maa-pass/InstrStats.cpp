@@ -117,7 +117,7 @@ unsigned int InstrStats::getLoopDepth(Instruction *I, LoopInfo *LI) {
 }
 
 
-void InstrStats::isConditional(llvm::Instruction *I) {
+void InstrStats::isConditional(Instruction *I) {
 
 	std::string name = I->getParent()->getName();
 
@@ -130,7 +130,7 @@ void InstrStats::isConditional(llvm::Instruction *I) {
 }
 
 
-void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t dep_calls) {
+void InstrStats::analyseAccessPattern(Instruction *I, struct dependance_t dep_calls) {
 
 	// errs() << "\nCreating access pattern for: " << *I << "\n";
 
@@ -151,7 +151,7 @@ void InstrStats::analyseAccessPattern(llvm::Instruction *I, struct dependance_t 
 }
 
 // Handles access patterns of Operands, rekursiv
-void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_calls) {
+void InstrStats::visitOperand(Instruction *I, struct dependance_t dep_calls) {
 
 	switch (I->getOpcode()) {
 		case Instruction::Add: {
@@ -281,15 +281,15 @@ void InstrStats::visitOperand(llvm::Instruction *I, struct dependance_t dep_call
 	}
 }
 
-void InstrStats::recursiveVisitOperand(llvm::Instruction *I, unsigned int op, struct dependance_t dep_calls) {
+void InstrStats::recursiveVisitOperand(Instruction *I, unsigned int op, struct dependance_t dep_calls) {
 
 	if (op >= I->getNumOperands()) {
 		errs() << "[recursiveVisitOperand] Accessing Operand that does not exist!\n";
 		return;
 	}
 
-	llvm::Instruction *instr;
-	llvm::ConstantInt *val;
+	Instruction *instr;
+	ConstantInt *val;
 
 	if ((instr = dyn_cast<Instruction>(I->getOperand(op)))) {
 

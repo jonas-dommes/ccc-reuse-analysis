@@ -41,12 +41,12 @@ struct maa : public FunctionPass {
 	bool runOnFunction(Function &F) override {
 
 		// getAnalysis<LoopSimplifyID>(F);
-		LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+		LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
-		FunctionStats func_stats(GAP);
+		FunctionStats func_stats(GAP, LI);
 
-		func_stats.analyseFunction(F, &LI);
+		func_stats.analyseFunction(F);
 
 		return false;
 	}

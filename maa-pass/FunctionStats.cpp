@@ -20,7 +20,10 @@
 
 using namespace llvm;
 
-FunctionStats::FunctionStats(GridAnalysisPass *GAP) {
+FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
+
+	this->LI = LI;
+	
 	// Copy Tid dependent Instructions
 	for (auto& call : GAP->getThreadIDDependentInstructions()) {
 		this->dep_calls.tid_calls.insert(call);
@@ -42,7 +45,7 @@ FunctionStats::FunctionStats(GridAnalysisPass *GAP) {
 	}
 }
 
-void FunctionStats::analyseFunction(Function &F, LoopInfo* LI){
+void FunctionStats::analyseFunction(Function &F){
 
 	this->function_name = F.getName();
 
