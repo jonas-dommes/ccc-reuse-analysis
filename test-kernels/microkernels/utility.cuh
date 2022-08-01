@@ -6,7 +6,7 @@
 
 #define eps 10e-3
 
-inline cudaError_t checkCuda(cudaError_t result);
+cudaError_t checkCuda(cudaError_t result);
 
 int check_result(const float *reference, const float *result, int n);
 

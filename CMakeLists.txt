@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.17)
 
 set(CudaCoarseningCompiler_VERSION 0.1)
-project(cuda-coarsening-compiler VERSION ${CudaCoarseningCompiler_VERSION} LANGUAGES C CXX CUDA)
+project(cuda-coarsening-compiler VERSION ${CudaCoarseningCompiler_VERSION} LANGUAGES CUDA C CXX)
 
-set(CUDA_PATH /usr/lib/cuda)
+set (CMAKE_CXX_STANDARD 17)
+
 find_package(LLVM CONFIG)
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)

@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include "utility.h"
+#include "utility.cuh"
 
 #include "microkernels.cuh"
 
