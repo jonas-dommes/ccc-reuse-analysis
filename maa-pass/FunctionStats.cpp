@@ -43,22 +43,23 @@ FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
 	for (auto& call : GAP->getGridSizeDependentInstructions()) {
 		this->dep_calls.gridsize_calls.insert(call);
 	}
+
 	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
 	// for (auto& call : this->dep_calls.tid_calls) {
-		// 	errs() << *call << "\n";
-		// }
-		// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
-		// for (auto& call : this->dep_calls.bid_calls) {
-			// 	errs() << *call << "\n";
-			// }
-			// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
-			// for (auto& call : this->dep_calls.blocksize_calls) {
-				// 	errs() << *call << "\n";
-				// }
-				// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
-				// for (auto& call : this->dep_calls.gridsize_calls) {
-					// 	errs() << *call << "\n";
-					// }
+	// 	errs() << *call << "\n";
+	// }
+	// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
+	// for (auto& call : this->dep_calls.bid_calls) {
+	// 	errs() << *call << "\n";
+	// }
+	// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
+	// for (auto& call : this->dep_calls.blocksize_calls) {
+	// 	errs() << *call << "\n";
+	// }
+	// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
+	// for (auto& call : this->dep_calls.gridsize_calls) {
+	// 	errs() << *call << "\n";
+	// }
 }
 
 
@@ -115,6 +116,37 @@ bool FunctionStats::isKernel(Function &F) {
 
 void FunctionStats::getDimension() {
 
+	unsigned int block_dim = 0;
+	unsigned int grid_dim = 0;
+
+	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
+
+	for (auto& call : this->dep_calls.tid_calls) {
+
+		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
+	}
+
+	for (auto& call : this->dep_calls.bid_calls) {
+
+		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
+	}
+
+	for (auto& call : this->dep_calls.blocksize_calls) {
+
+		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
+	}
+
+	for (auto& call : this->dep_calls.gridsize_calls) {
+
+		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
+	}
+
+	this->max_block_dim = block_dim;
+	this->max_grid_dim = grid_dim;
 }
 
 
