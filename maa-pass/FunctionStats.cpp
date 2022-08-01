@@ -43,7 +43,24 @@ FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
 	for (auto& call : GAP->getGridSizeDependentInstructions()) {
 		this->dep_calls.gridsize_calls.insert(call);
 	}
+	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
+	// for (auto& call : this->dep_calls.tid_calls) {
+		// 	errs() << *call << "\n";
+		// }
+		// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
+		// for (auto& call : this->dep_calls.bid_calls) {
+			// 	errs() << *call << "\n";
+			// }
+			// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
+			// for (auto& call : this->dep_calls.blocksize_calls) {
+				// 	errs() << *call << "\n";
+				// }
+				// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
+				// for (auto& call : this->dep_calls.gridsize_calls) {
+					// 	errs() << *call << "\n";
+					// }
 }
+
 
 void FunctionStats::analyseFunction(Function &F){
 
@@ -55,24 +72,9 @@ void FunctionStats::analyseFunction(Function &F){
 		return;
 	}
 
-	// // Print dep calls
 	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
-	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
-	// for (auto& call : this->dep_calls.tid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
-	// for (auto& call : this->dep_calls.bid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
-	// for (auto& call : this->dep_calls.blocksize_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
-	// for (auto& call : this->dep_calls.gridsize_calls) {
-	// 	errs() << *call << "\n";
-	// }
+
+	this->getDimension();
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
@@ -108,6 +110,23 @@ bool FunctionStats::isKernel(Function &F) {
 
 	this->is_kernel = true;
 	return true;
+}
+
+
+void FunctionStats::getDimension() {
+
+}
+
+
+void FunctionStats::evaluateUniques() {
+
+	this->unique_loads = this->load_addresses.size();
+	this->unique_stores = this->store_addresses.size();
+
+	// Get total unique loads and stores TODO proper addresses
+	std::set<Value *> total;
+	set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
+	this->unique_total = total.size();
 }
 
 
@@ -151,24 +170,12 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
 }
 
 
-void FunctionStats::evaluateUniques() {
-
-	this->unique_loads = this->load_addresses.size();
-	this->unique_stores = this->store_addresses.size();
-
-	// Get total unique loads and stores TODO proper addresses
-	std::set<Value *> total;
-	set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
-	this->unique_total = total.size();
-}
-
-
 void FunctionStats::printFunctionStats() {
 
 	printf("\n%s", this->function_name.c_str());
 
 	if (this->is_kernel) {
-		printf(" is kernel function\n");
+		printf(" is kernel function. BlockDim(%d), GridDim(%d)\n", this->max_block_dim, this->max_grid_dim);
 		// printf("\tNum loads  (unique): %2d (%2d)\n", this->num_loads, this->unique_loads);
 		// printf("\tNum stores (unique): %2d (%2d)\n", this->num_stores, this->unique_stores);
 		// printf("\tNum total  (unique): %2d (%2d)\n", this->num_stores + this->num_loads, this->unique_total);
@@ -178,6 +185,7 @@ void FunctionStats::printFunctionStats() {
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads ", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "stores", this->num_stores, this->unique_stores, this->s_num_tid, this->s_num_bid, this->s_num_bsd, this->s_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n\n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
+
 
 
 	} else {

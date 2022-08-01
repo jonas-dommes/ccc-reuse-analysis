@@ -28,6 +28,9 @@ public:
 	std::set<Value*> load_addresses;
 	std::set<Value*> store_addresses;
 
+	unsigned int max_block_dim = 0;
+	unsigned int max_grid_dim = 0;
+
 	unsigned int num_loads = 0;
 	unsigned int num_stores = 0;
 	unsigned int unique_loads = 0;
@@ -52,9 +55,15 @@ public:
 	void analyseFunction(Function &F);
 
 private:
+	// Function Wide Analysis
 	bool isKernel(Function &F);
-	void evaluateInstruction(InstrStats instr_stats);
+	void getDimension();
+
+	// Evaluation
 	void evaluateUniques();
+	void evaluateInstruction(InstrStats instr_stats);
+
+	// Printing
 	void printFunctionStats();
 	void printInstrMap();
 };
