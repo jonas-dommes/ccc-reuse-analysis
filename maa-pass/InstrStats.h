@@ -4,8 +4,21 @@
 // #include "InstrStats.fwd.h"
 #include "FunctionStats.fwd.h"
 
+#include <string>
+#include <set>
+
+#include <llvm/IR/Instructions.h>
+#include <llvm/Analysis/LoopInfo.h>
+
+// #include <llvm/IR/Value.h>
+
+
+using namespace llvm;
+
+
 #define OP0 0
 #define OP1 1
+
 
 class InstrStats{
 

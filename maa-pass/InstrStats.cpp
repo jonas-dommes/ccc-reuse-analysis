@@ -1,5 +1,7 @@
 #include <iostream>
 #include <algorithm>
+#include <set>
+
 
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Instructions.h>
@@ -10,6 +12,10 @@
 #include "FunctionStats.h"
 
 #include "InstrStats.h"
+
+#include "AccessTree.h"
+#include "ATNode.h"
+#include "Operation.h"
 
 using namespace llvm;
 
@@ -28,6 +34,10 @@ void InstrStats::analyseInstr(Instruction *I, FunctionStats *func_stats) {
 		this->addr = I->getOperand(0);
 		this->is_load = true;
 	}
+
+	ATNode root(op_t::ADD);
+	AccessTree at(&root);
+	at.print();
 
 	this->getDataAlias(I);
 	this->getLoopDepth(I, func_stats->LI);
@@ -258,7 +268,7 @@ void InstrStats::visitOperand(Instruction *I, struct dependance_t dep_calls) {
 				recursiveVisitOperand(I, OP1, dep_calls);
 				this->access_pattern.append("}");
 
-			// Phi not yet present in map
+				// Phi not yet present in map
 			} else {
 
 				this->access_pattern.append("INC");
@@ -293,7 +303,7 @@ void InstrStats::recursiveVisitOperand(Instruction *I, unsigned int op, struct d
 		// errs() << "VisitOperand(" << *I->getOperand(op) << "  )\n" ;
 		visitOperand(instr, dep_calls);
 
-	// Handle GetElementPtr Instructions to constant values
+		// Handle GetElementPtr Instructions to constant values
 	} else if (isa<GetElementPtrInst>(I) && (val = dyn_cast<ConstantInt>((I->getOperand(OP1))))) {
 
 		this->access_pattern.append(I->getOperand(OP0)->getName());
@@ -301,12 +311,12 @@ void InstrStats::recursiveVisitOperand(Instruction *I, unsigned int op, struct d
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
 		this->access_pattern.append("]");
 
-	// Handle Constants
+		// Handle Constants
 	} else if ((val = dyn_cast<ConstantInt>((I->getOperand(op))))) {
 
 		this->access_pattern.append(std::to_string(val->getSExtValue()));
 
-	// Handle use of argument Variables
+		// Handle use of argument Variables
 	} else if (isa<Argument>(*I->getOperand(op))){
 
 		this->access_pattern.append(I->getOperand(op)->getName());
