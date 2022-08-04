@@ -68,6 +68,10 @@ std::string Operation :: to_string() {
 			op_string = " LOAD ";
 			break;
 		}
+		case op_t::STORE: {
+			op_string = " STORE ";
+			break;
+		}
 		case op_t::PHI: {
 			op_string = " PHI{} ";
 			break;
@@ -77,7 +81,7 @@ std::string Operation :: to_string() {
 			break;
 		}
 		default:
-		op_string = " DEFAULT OP ";
+		op_string = " DEFAULT_OP ";
 		break;
 	}
 	return op_string;
@@ -135,6 +139,10 @@ void Operation :: setOpFromInstr(Instruction* I) {
 			}
 		case Instruction::Load: {
 			this->op = op_t::LOAD;
+			break;
+		}
+		case Instruction::Store: {
+			this->op = op_t::STORE;
 			break;
 		}
 		case Instruction::PHI: {

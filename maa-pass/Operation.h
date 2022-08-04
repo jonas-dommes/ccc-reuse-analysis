@@ -8,7 +8,7 @@
 using namespace llvm;
 
 enum class op_t {
-	ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, PHI, GETELEPTR, UNDEF
+	ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, STORE, PHI, GETELEPTR, UNDEF
 };
 
 class Operation {
