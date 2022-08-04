@@ -11,6 +11,7 @@ Operation :: Operation(op_t operation) : op(operation) {}
 
 Operation :: Operation(Instruction* I) {
 
+	this->setOpFromInstr(I);
 }
 
 // METHODS
