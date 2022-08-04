@@ -18,7 +18,19 @@ void AccessTree :: print() {
 
 	if(this->root != nullptr) {
 		this->root->print();
-		errs() << "\n";
+		printf("\n");
 
 	}
+}
+
+std::string AccessTree :: to_string() {
+
+	std::string tree_string;
+
+	if(this->root != nullptr) {
+		tree_string.append(this->root->to_string());
+	}
+	tree_string.append("\n");
+
+	return tree_string;
 }

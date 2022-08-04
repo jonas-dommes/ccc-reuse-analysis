@@ -15,7 +15,10 @@ public:
 	ATNode (op_t operation);
 
 // METHODS
+	void insert(Instruction* I);
+
 	void print();
+	std::string to_string();
 
 };
 

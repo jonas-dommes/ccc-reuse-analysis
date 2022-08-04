@@ -15,6 +15,7 @@ public:
 
 	// METHODS
 	void print();
+	std::string to_string();
 };
 
 
