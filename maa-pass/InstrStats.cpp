@@ -35,9 +35,18 @@ void InstrStats::analyseInstr(Instruction *I, FunctionStats *func_stats) {
 		this->is_load = true;
 	}
 
-	ATNode root(op_t::ADD);
+	// Idee:
+	// Create Tree, save root as member
+	// Fill Tree from Instruction (maybe in a Constructor)
+	// use tree for access pattern and offset stepsize
+
+	ATNode root(I);
 	AccessTree at(&root);
+	errs() << "___________Finished Tree___________\n\n";
 	at.print();
+	errs() << "___________Finished Printing___________\n\n";
+	errs() << at.to_string();
+	errs() << "___________Finished to_string___________\n\n";
 
 	this->getDataAlias(I);
 	this->getLoopDepth(I, func_stats->LI);

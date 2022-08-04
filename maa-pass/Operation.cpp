@@ -66,7 +66,7 @@ std::string Operation :: to_string() {
 			break;
 		}
 		case op_t::CALL: {
-			op_string = " CALL() ";
+			op_string = "CALL";
 			break;
 		}
 		case op_t::LOAD: {
@@ -83,6 +83,10 @@ std::string Operation :: to_string() {
 		}
 		case op_t::GETELEPTR: {
 			op_string = " GETELEMENTPTR ";
+			break;
+		}
+		case op_t::OP_0: {
+			op_string = " OP_0 ";
 			break;
 		}
 		default:
@@ -156,9 +160,18 @@ void Operation :: setOpFromInstr(Instruction* I) {
 		}
 		case Instruction::GetElementPtr: {
 			this->op = op_t::GETELEPTR;
+			break;
+		}
+		case Instruction::Trunc:
+		case Instruction::SExt:
+		case Instruction::ZExt:
+		case Instruction::BitCast: {
+			this->op = op_t::OP_0;
+			break;
 		}
 		default: {
 			this->op = op_t::UNDEF;
+			errs() << "[setOpFromInstr()] Reached UNDEF with" << *I << "\n";
 			break;
 		}
 	}
@@ -179,24 +192,22 @@ void Operation :: initOperands() {
 		case op_t::XOR:{
 			this->operands.push_back(0);
 			this->operands.push_back(1);
+			break;
 		}
 		case op_t::CALL: {
 			break;
 		}
+		case op_t::OP_0:
 		case op_t::LOAD: {
 			this->operands.push_back(0);
 			break;
 		}
+		case op_t::GETELEPTR:
 		case op_t::STORE: {
 			this->operands.push_back(1);
 			break;
 		}
 		case op_t::PHI: {
-			this->operands.push_back(0);
-			this->operands.push_back(1);
-			break;
-		}
-		case op_t::GETELEPTR: {
 			this->operands.push_back(0);
 			this->operands.push_back(1);
 			break;
