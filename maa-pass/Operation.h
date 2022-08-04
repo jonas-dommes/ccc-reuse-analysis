@@ -3,6 +3,10 @@
 
 #include <string>
 
+#include <llvm/IR/Instructions.h>
+
+using namespace llvm;
+
 enum class op_t {
 	ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, PHI, GETELEPTR, UNDEF
 };
@@ -15,9 +19,13 @@ public:
 
 	// CONSTRUCTOR
 	Operation(op_t operation);
+	Operation(Instruction* I);
 
 	// METHODS
 	std::string to_string();
+
+private:
+	void setOpFromInstr(Instruction* I);
 };
 
 
