@@ -1,9 +1,12 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
-#include <string>
-
 #include <llvm/IR/Instructions.h>
+
+#include <string>
+#include <vector>
+
+
 
 using namespace llvm;
 
@@ -15,6 +18,7 @@ class Operation {
 public:
 
 	op_t op;
+	std::vector<int> operands;
 
 
 	// CONSTRUCTOR
@@ -26,6 +30,7 @@ public:
 
 private:
 	void setOpFromInstr(Instruction* I);
+	void initOperands();
 };
 
 

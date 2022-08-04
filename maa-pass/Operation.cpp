@@ -3,15 +3,20 @@
 #include <llvm/IR/Instructions.h>
 
 #include <string>
+#include <vector>
 
 using namespace llvm;
 
 // CONSTRUCTOR
-Operation :: Operation(op_t operation) : op(operation) {}
+Operation :: Operation(op_t operation) : op(operation) {
+
+	this->initOperands();
+}
 
 Operation :: Operation(Instruction* I) {
 
 	this->setOpFromInstr(I);
+	this->initOperands();
 }
 
 // METHODS
@@ -136,7 +141,7 @@ void Operation :: setOpFromInstr(Instruction* I) {
 		case Instruction::Call: {
 			this->op = op_t::CALL;
 			break;
-			}
+		}
 		case Instruction::Load: {
 			this->op = op_t::LOAD;
 			break;
@@ -156,5 +161,48 @@ void Operation :: setOpFromInstr(Instruction* I) {
 			this->op = op_t::UNDEF;
 			break;
 		}
+	}
+}
+
+void Operation :: initOperands() {
+
+	switch (this->op) {
+		case op_t::ADD:
+		case op_t::SUB:
+		case op_t::MUL:
+		case op_t::DIV:
+		case op_t::REM:
+		case op_t::SHL:
+		case op_t::SHR:
+		case op_t::OR:
+		case op_t::AND:
+		case op_t::XOR:{
+			this->operands.push_back(0);
+			this->operands.push_back(1);
+		}
+		case op_t::CALL: {
+			break;
+		}
+		case op_t::LOAD: {
+			this->operands.push_back(0);
+			break;
+		}
+		case op_t::STORE: {
+			this->operands.push_back(1);
+			break;
+		}
+		case op_t::PHI: {
+			this->operands.push_back(0);
+			this->operands.push_back(1);
+			break;
+		}
+		case op_t::GETELEPTR: {
+			this->operands.push_back(0);
+			this->operands.push_back(1);
+			break;
+		}
+		default:
+		 	errs() << "[initOperands()] Reached DEFAULT_OP\n";
+		break;
 	}
 }
