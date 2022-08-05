@@ -3,8 +3,7 @@
 
 // #include "InstrStats.fwd.h"
 #include "FunctionStats.fwd.h"
-
-// #include "ATNode.h"
+#include "ATNode.fwd.h"
 
 #include "../llvm-rpc-passes/GridAnalysisPass.h"
 
@@ -17,9 +16,7 @@
 // #include <llvm/IR/Value.h>
 
 
-using namespace llvm;
-
-class ATNode;
+// using namespace llvm;
 
 #define OP0 0
 #define OP1 1

@@ -1,7 +1,12 @@
-#include <string>
-#include <set>
-#include <iostream>
-#include <map>
+#include "MemoryAccessAnalysis.h"
+
+#include "PassStats.h"
+#include "FunctionStats.h"
+#include "InstrStats.h"
+#include "Util.h"
+
+#include "../llvm-rpc-passes/Common.h"
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
@@ -11,17 +16,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include <llvm/Analysis/LoopInfo.h>
 
-#include "../llvm-rpc-passes/Common.h"
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-
 #include "NVPTXUtilities.h"
 
-#include "PassStats.h"
-#include "FunctionStats.h"
-#include "InstrStats.h"
-#include "Util.h"
+#include <string>
+#include <set>
+#include <iostream>
+#include <map>
 
-#include "MemoryAccessAnalysis.h"
 
 using namespace llvm;
 

@@ -1,8 +1,15 @@
 #ifndef FUNCTIONSTATS_H
 #define FUNCTIONSTATS_H
 
-#include "FunctionStats.fwd.h"
 #include "InstrStats.fwd.h"
+
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
+
+#include <llvm/IR/Instructions.h>
+#include <llvm/Analysis/LoopInfo.h>
+
+#include <string>
+
 
 
 #define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"

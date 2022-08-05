@@ -5,9 +5,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include <llvm/IR/Instructions.h>
 
-
-// #include <iostream>
-// #include <string>
+#include <iostream>
+#include <string>
 
 using namespace llvm;
 
