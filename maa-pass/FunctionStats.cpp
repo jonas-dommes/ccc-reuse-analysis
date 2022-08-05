@@ -2,9 +2,6 @@
 
 #include "FunctionStats.h"
 
-#include "../llvm-rpc-passes/Common.h"
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-
 #include "NVPTXUtilities.h"
 
 #include "llvm/IR/Function.h"
@@ -23,51 +20,10 @@ using namespace llvm;
 
 
 
-FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
-
-	this->LI = LI;
-	this->GAP = GAP;
-
-	// Copy Tid dependent Instructions
-	for (auto& call : GAP->getThreadIDDependentInstructions()) {
-		this->dep_calls.tid_calls.insert(call);
-	}
-
-	// Copy Bid dependent Instructions
-	for (auto& call : GAP->getBlockIDDependentInstructions()) {
-		this->dep_calls.bid_calls.insert(call);
-	}
-
-	// Copy Blocksize dependent Instructions
-	for (auto& call : GAP->getBlockSizeDependentInstructions()) {
-		this->dep_calls.blocksize_calls.insert(call);
-	}
-
-	// Copy Gridsize dependent Instructions
-	for (auto& call : GAP->getGridSizeDependentInstructions()) {
-		this->dep_calls.gridsize_calls.insert(call);
-	}
-
-	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
-	// for (auto& call : this->dep_calls.tid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
-	// for (auto& call : this->dep_calls.bid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
-	// for (auto& call : this->dep_calls.blocksize_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
-	// for (auto& call : this->dep_calls.gridsize_calls) {
-	// 	errs() << *call << "\n";
-	// }
-}
+FunctionStats :: FunctionStats(LoopInfo *LI) : LI(LI) {}
 
 
-void FunctionStats::analyseFunction(Function &F){
+void FunctionStats :: analyseFunction(Function &F){
 
 	this->function_name = F.getName();
 
@@ -88,7 +44,7 @@ void FunctionStats::analyseFunction(Function &F){
 			continue;
 		}
 
-		InstrStats instr_stats(GAP);
+		InstrStats instr_stats;
 
 		instr_stats.analyseInstr(&*I, this);
 		this->evaluateInstruction(instr_stats);
@@ -98,13 +54,13 @@ void FunctionStats::analyseFunction(Function &F){
 
 	this->evaluateUniques();
 
-
+	// Print results
 	this->printFunctionStats();
 	this->printInstrMap();
 }
 
 
-bool FunctionStats::isKernel(Function &F) {
+bool FunctionStats :: isKernel(Function &F) {
 
 	bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
 	bool isKernel = isKernelFunction(F);
@@ -118,43 +74,43 @@ bool FunctionStats::isKernel(Function &F) {
 }
 
 
-void FunctionStats::getDimension() {
+void FunctionStats :: getDimension() {
 
 	unsigned int block_dim = 0;
 	unsigned int grid_dim = 0;
 
 	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
 
-	for (auto& call : this->dep_calls.tid_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
-	}
-
-	for (auto& call : this->dep_calls.bid_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	}
-
-	for (auto& call : this->dep_calls.blocksize_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
-	}
-
-	for (auto& call : this->dep_calls.gridsize_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	}
+	// for (auto& call : this->dep_calls.tid_calls) {
+	//
+	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+	// 	if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
+	// }
+	//
+	// for (auto& call : this->dep_calls.bid_calls) {
+	//
+	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+	// 	if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
+	// }
+	//
+	// for (auto& call : this->dep_calls.blocksize_calls) {
+	//
+	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+	// 	if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
+	// }
+	//
+	// for (auto& call : this->dep_calls.gridsize_calls) {
+	//
+	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
+	// 	if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
+	// }
 
 	this->max_block_dim = block_dim;
 	this->max_grid_dim = grid_dim;
 }
 
 
-void FunctionStats::evaluateUniques() {
+void FunctionStats :: evaluateUniques() {
 
 	this->unique_loads = this->load_addresses.size();
 	this->unique_stores = this->store_addresses.size();
@@ -166,7 +122,7 @@ void FunctionStats::evaluateUniques() {
 }
 
 
-void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
+void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 
 	if (instr_stats.is_load) {
 
@@ -206,7 +162,7 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
 }
 
 
-void FunctionStats::printFunctionStats() {
+void FunctionStats :: printFunctionStats() {
 
 	printf("\n%s", this->function_name.c_str());
 
@@ -230,7 +186,7 @@ void FunctionStats::printFunctionStats() {
 }
 
 
-void FunctionStats::printInstrMap() {
+void FunctionStats :: printInstrMap() {
 
 	for (auto& elem : instr_map) {
 

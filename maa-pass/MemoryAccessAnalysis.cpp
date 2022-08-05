@@ -5,9 +5,6 @@
 #include "InstrStats.h"
 #include "Util.h"
 
-#include "../llvm-rpc-passes/Common.h"
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
@@ -35,7 +32,6 @@ struct maa : public FunctionPass {
 	void getAnalysisUsage(AnalysisUsage &AU) const override {
 		AU.setPreservesCFG();
 		AU.addRequired<LoopInfoWrapperPass>();
-		AU.addRequired<GridAnalysisPass>();
 	}
 
 
@@ -43,9 +39,8 @@ struct maa : public FunctionPass {
 
 		// getAnalysis<LoopSimplifyID>(F);
 		LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
-		GridAnalysisPass *GAP = &getAnalysis<GridAnalysisPass>();
 
-		FunctionStats func_stats(GAP, LI);
+		FunctionStats func_stats(LI);
 
 		func_stats.analyseFunction(F);
 

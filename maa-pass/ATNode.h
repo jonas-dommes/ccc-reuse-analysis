@@ -12,12 +12,15 @@ using namespace llvm;
 enum class instr_t {
 	NONE = 0, ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, STORE, PHI, GETELEPTR, EXT
 };
+
 enum class val_t {
 	NONE = 0, ARG, CONST_INT, CUDA_REG
 };
+
 const std::string instr_t_str[] = {
 	"NONE", "ADD", "SUB", "MUL", "DIV", "REM", "SHL", "SHR", "OR", "AND", "XOR", "CALL", "LOAD", "STORE", "PHI", "GETELEPTR", "EXT", "UNDEF"
 };
+
 const std::string val_t_str[] {
 	"NONE", "ARG", "CONST_INT", "CUDA_REG"
 };

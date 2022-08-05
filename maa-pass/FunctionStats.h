@@ -3,31 +3,20 @@
 
 #include "InstrStats.fwd.h"
 
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-
 #include <llvm/IR/Instructions.h>
 #include <llvm/Analysis/LoopInfo.h>
 
 #include <string>
+#include <set>
 
-
+using namespace llvm;
 
 #define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"
-
-struct dependance_t {
-	std::set<Instruction*> tid_calls;
-	std::set<Instruction*> bid_calls;
-	std::set<Instruction*> blocksize_calls;
-	std::set<Instruction*> gridsize_calls;
-};
 
 class FunctionStats {
 
 // DATA
-
 public:
-	struct dependance_t dep_calls;
-	GridAnalysisPass* GAP;
 	LoopInfo *LI;
 	std::map<Instruction*, InstrStats> instr_map;
 
@@ -59,7 +48,7 @@ public:
 
 // METHODS
 public:
-	FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI);
+	FunctionStats(LoopInfo *LI);
 	void analyseFunction(Function &F);
 
 private:

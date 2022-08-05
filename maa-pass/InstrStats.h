@@ -5,29 +5,19 @@
 #include "FunctionStats.fwd.h"
 #include "ATNode.fwd.h"
 
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Analysis/LoopInfo.h>
 
 #include <string>
 #include <set>
 
-// #include <llvm/IR/Value.h>
-
-
-// using namespace llvm;
-
-#define OP0 0
-#define OP1 1
-
+using namespace llvm;
 
 class InstrStats{
 
 // DATA
 public:
-	GridAnalysisPass* GAP;
-
 	ATNode* root;
 
 	unsigned int loop_depth = 0;   // 0 -> no loop
@@ -40,7 +30,7 @@ public:
 	bool is_blocksize_dep = false;
 	bool is_gridsize_dep = false;
 	bool first_use = false;            // Addr is used here for the first time
-	Value * addr = NULL;
+	Value * addr = nullptr;
 	std::string data_alias = "";
 	std::string access_pattern = "";
 
@@ -49,7 +39,7 @@ private:
 
 public:
 	// CONSTRUCTOR
-	InstrStats(GridAnalysisPass* GAP);
+	InstrStats();
 
 // METHODS
 public:
@@ -61,9 +51,8 @@ private:
 	unsigned int getLoopDepth(Instruction *I, LoopInfo *LI);
 	void isConditional(Instruction *I);
 	unsigned int getAddr();
-	void analyseAccessPattern(Instruction *I, struct dependance_t dep_calls);
-	void visitOperand(Instruction *I, struct dependance_t dep_calls);
-	void recursiveVisitOperand(Instruction *I, unsigned int op, struct dependance_t dep_calls);
+	void analyseAccessPattern(Instruction *I);
+
 };
 
 
