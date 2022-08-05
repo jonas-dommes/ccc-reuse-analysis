@@ -20,6 +20,7 @@ class FunctionStats {
 
 public:
 	struct dependance_t dep_calls;
+	GridAnalysisPass* GAP;
 	LoopInfo *LI;
 	std::map<Instruction*, InstrStats> instr_map;
 

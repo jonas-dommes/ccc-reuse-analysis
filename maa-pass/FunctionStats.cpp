@@ -1,30 +1,32 @@
-#include <iostream>
-#include <string>
-#include <set>
+#include "InstrStats.h"
 
+#include "FunctionStats.h"
+
+#include "../llvm-rpc-passes/Common.h"
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
+
+#include "NVPTXUtilities.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Instructions.h>
 #include "llvm/IR/InstIterator.h"
-
 #include <llvm/Support/raw_ostream.h>
 
-#include "../llvm-rpc-passes/Common.h"
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-#include "NVPTXUtilities.h"
-
-#include "InstrStats.h"
-
-#include "FunctionStats.h"
+#include <iostream>
+#include <string>
+#include <set>
 
 
 using namespace llvm;
 
+
+
 FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
 
 	this->LI = LI;
+	this->GAP = GAP;
 
 	// Copy Tid dependent Instructions
 	for (auto& call : GAP->getThreadIDDependentInstructions()) {
@@ -86,12 +88,12 @@ void FunctionStats::analyseFunction(Function &F){
 			continue;
 		}
 
-		InstrStats instr_stats;
+		InstrStats instr_stats(GAP);
 
 		instr_stats.analyseInstr(&*I, this);
 		this->evaluateInstruction(instr_stats);
 
-		instr_map[&*I] = instr_stats;
+		this->instr_map.emplace(&*I, instr_stats);
 	}
 
 	this->evaluateUniques();

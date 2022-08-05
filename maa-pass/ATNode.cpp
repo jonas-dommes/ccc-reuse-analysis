@@ -13,175 +13,333 @@ using namespace llvm;
 
 
 // Constructor
-ATNode :: ATNode (Instruction* I) : op(I), instr(I), value(nullptr) {
-	errs() << "Adding (" << this->op.operands.size() << ") nodes for " << *I << "\n";
-	this->insert(I);
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1} {
+
+	if (Instruction* I = dyn_cast<Instruction>(value)) {
+
+		errs() << "Insert Instruction" << *I << "\n";
+		this->set_instr_type(I);
+		this->insertInstruction(I);
+
+	} else if (Argument* arg = dyn_cast<Argument>(value) ){
+
+		this->value_type = val_t::ARG;
+		this->name = arg->getName();
+		errs() << "Added Argument with name " << this->name << "\n";
+
+
+	} else if (ConstantInt* const_int = dyn_cast<ConstantInt>(value) ){
+
+		this->value_type = val_t::CONST_INT;
+		this->int_val = const_int->getSExtValue ();
+		errs() << "Added ConstantInt with value " << this->int_val << "\n";
+
+	} else if (CallInst* call = dyn_cast<CallInst>(this->parent->value) ){
+
+		this->value_type = val_t::CUDA_REG;
+		this->handleCallStr();
+		errs() << "Found CallInst with Functionname: " << this->name << "\n";
+
+	} else {
+		errs() << "Is none of the above: " << *value << "\n";
+	}
+
+
+	// printErrsNode();
 }
 
 // METHODS
-void ATNode :: insert(Instruction* I) {
+void ATNode :: insertInstruction(Instruction* I) {
 
-	for (int i : op.operands) {
-		if (Instruction* operand = dyn_cast<Instruction>(I->getOperand(i))) {
+	int i = 0;
 
-			errs() << "\tOperd: " << *operand << "\n";
+	if (isa<StoreInst>(I)) {
+		errs() << "\tOp" << i++ << ": " << *I->getOperand(1) << "\n";
+		this->children.push_back(new ATNode(I->getOperand(1), this->instr_stats, this));
+		return;
+	}
 
-			this->children.push_back(new ATNode(operand));
-		} else if (Value* val = dyn_cast<Value>(I->getOperand(i))){
+	for (Use& op : I->operands()) {
+		errs() << "\tOp" << i++ << ": " << *op << "\n";
+	}
+	for (Use& op : I->operands()) {
+		this->children.push_back(new ATNode(op, this->instr_stats, this));
+	}
 
-			errs() << "\tValue: " << *val << "\n";
-			this->value = val;
+}
 
-		} else {
-			errs() << "Not an instruction or value: "<< *I->getOperand(i) << "\n";
+void ATNode :: handleCallStr() {
+
+	StringRef call_name = this->value->getName();
+	StringRef prefix = "llvm.nvvm.read.ptx.sreg.";
+
+	call_name.consume_front(prefix);
+	this->name = call_name;
+}
+
+void ATNode :: set_instr_type(Instruction* I) {
+
+	switch (I->getOpcode()) {
+		case Instruction::Add: {
+			this->instr_type = instr_t::ADD;
+			break;
+		}
+		case Instruction::Sub: {
+			this->instr_type = instr_t::SUB;
+			break;
+		}
+		case Instruction::Mul: {
+			this->instr_type = instr_t::MUL;
+			break;
+		}
+		case Instruction::UDiv:
+		case Instruction::SDiv: {
+			this->instr_type = instr_t::DIV;
+			break;
+		}
+		case Instruction::URem:
+		case Instruction::SRem: {
+			this->instr_type = instr_t::REM;
+			break;
+		}
+		case Instruction::Shl:
+		case Instruction::LShr: {
+			this->instr_type = instr_t::SHL;
+			break;
+		}
+		case Instruction::AShr: {
+			this->instr_type = instr_t::SHR;
+			break;
+		}
+		case Instruction::Or: {
+			this->instr_type = instr_t::OR;
+			break;
+		}
+		case Instruction::And: {
+			this->instr_type = instr_t::AND;
+			break;
+		}
+		case Instruction::Xor: {
+			this->instr_type = instr_t::XOR;
+			break;
+		}
+		case Instruction::Call: {
+			this->instr_type = instr_t::CALL;
+			break;
+		}
+		case Instruction::Load: {
+			this->instr_type = instr_t::LOAD;
+			break;
+		}
+		case Instruction::Store: {
+			this->instr_type = instr_t::STORE;
+			break;
+		}
+		case Instruction::PHI: {
+			this->instr_type = instr_t::PHI;
+			break;
+		}
+		case Instruction::GetElementPtr: {
+			this->instr_type = instr_t::GETELEPTR;
+			break;
+		}
+		case Instruction::Trunc:
+		case Instruction::SExt:
+		case Instruction::ZExt:
+		case Instruction::BitCast: {
+			this->instr_type = instr_t::EXT;
+			break;
+		}
+		default: {
+			errs() << "[set_instr_type()] Reached default case with" << *I << "\n";
+			break;
 		}
 	}
 }
 
+void ATNode :: printErrsNode() {
 
+	errs() << "\n============== NODE:" << *this->value << " ============== \n";
 
-void ATNode :: print() {
+	if(this->parent != nullptr) errs() << "Parent:" << *this->parent->value << "\n";
 
-	// errs() << this->op.to_string() << "(" << this->op.operands.size() << ")\n";
-	//
-	// for (auto& child : this->children) child->print();
-
-	printf("%s", this->to_string().c_str());
-	//
-	// printf("(");
-	// if(this->children.first != nullptr) this->children.first->print();
-	// printf("%s", this->op.to_string().c_str());
-	// if(this->children.second != nullptr) this->children.second->print();
-	// printf(")");
-	// if (this->op.operands.size() <= 1) {
-	//
-	// 	// printf("%s", this->op.to_string().c_str());
-	// 	errs() <<  this->op.to_string();
-	// 	// printf("(");
-	// 	errs() << "(";
-	// 	// if(this->children.size() == 1) node_string.append(this->children[0]->to_string());
-	// 	if(this->children.size() == 1) errs() << this->children[0]->to_string();
-	// 	// printf(")");
-	// 	errs() << ")";
-	//
-	// }  else if (this->op.operands.size() == 2) {
-	//
-	// 	// node_string.append("(");
-	// 	// if(this->children.size() == 1) node_string.append(this->children[0]->to_string());
-	// 	// node_string.append(this->op.to_string());
-	// 	// if(this->children.size() == 2) node_string.append(this->children[1]->to_string());
-	// 	// node_string.append(")");
-	//
-	//
-	// } else {
-	// 	errs() << "[ATNODE::to_string()] should not have more than two Operands\n";
-	// }
-}
-
-std::string ATNode :: to_string() {
-
-	std::string node_string = "";
-
-	if (this->op.operands.size() == 0) { //Should be Call
-
-		if (this->op.op == op_t::CALL) {
-			node_string.append(this->op.to_string());
-		} else {
-			errs() << "Zero Operands is no Call\n";
-		}
-
-	} else if (this->op.operands.size() == 1) {
-
-		if (this->op.op == op_t::GETELEPTR) {
-
-			node_string.append(this->instr->getOperand(0)->getName());
-			node_string.append("[");
-
-			if (ConstantInt* val = dyn_cast<ConstantInt>(this->instr->getOperand(1))) {
-				node_string.append(std::to_string(val->getSExtValue()));
-			} else if(this->children.size() == 1) {
-				node_string.append(this->children[0]->to_string());
-			}
-			node_string.append("]");
-
-		} else {
-
-			if(this->children.size() == 1) {
-				node_string.append(this->children[0]->to_string());
-			} else {
-				node_string.append(value_to_string());
-			}
-		}
-	}  else if (this->op.operands.size() == 2) {
-
-		if (this->op.op == op_t::PHI) {
-
-			node_string.append("PHI");
-			node_string.append("{");
-
-			if(this->children.size() == 1) {
-				node_string.append(this->children[0]->to_string());
-			} else {
-				node_string.append(value_to_string());
-			}
-
-			node_string.append(", ");
-
-			if(this->children.size() == 2) {
-				node_string.append(this->children[1]->to_string());
-			} else {
-				node_string.append(value_to_string());
-			}
-
-			node_string.append("}");
-
-		} else {
-
-			node_string.append("(");
-
-			if(this->children.size() >= 1) {
-				node_string.append(this->children[0]->to_string());
-			} else {
-				node_string.append(value_to_string());
-			}
-
-			node_string.append(this->op.to_string());
-
-			if(this->children.size() >= 2) {
-				node_string.append(this->children[1]->to_string());
-			} else {
-				node_string.append(value_to_string());
-			}
-
-			node_string.append(")");
-		}
-	} else {
-		errs() << "[ATNODE::to_string()] should not have more than two Operands\n";
-	}
-	return node_string;
-}
-
-std::string ATNode :: value_to_string() {
-
-	if (this->value == nullptr) {
-		errs() << "Trying to get value from empty vector\n";
-		return "";
+	int i = 0;
+	for (ATNode* val : children) {
+		errs() << "Child" << i++ << ":" <<*val->value << "\n";
 	}
 
-	std::string val_str = "";
+	errs() << "instr_t: " << this->instr_t_to_string() << " val_t: " << this->val_t_to_string() << "\n";
 
-	if (ConstantInt* const_val = dyn_cast<ConstantInt>(value)) {
+	if (value_type != val_t::NONE)  {
+		if (value_type == val_t::CONST_INT) {
+			errs() << "int_val " << this->int_val << "\n";
+		} else {
+			errs() << "name: " << this->name << "\n";
+		}
+	}
 
-		val_str.append(std::to_string(const_val->getSExtValue()));
+	errs() << "============== NODE END ============== \n";
+}
 
-	} else if (Argument* arg = dyn_cast<Argument>(value)) {
+std::string ATNode :: access_pattern_to_string() {
 
-		val_str.append(arg->getName());
-		val_str.append("[0]");
+	std::string str = "";
+
+	if (value_type != val_t::NONE) {
+
+		str.append(access_patter_value());
+
+	} else if (instr_type != instr_t::NONE) {
+
+		str.append(access_pattern_instr());
 
 	} else {
-
-		errs() << "[Printvalue] Neither Case matched\n";
+		errs() << "Neither value_type nor instr_type are set \n";
 	}
-	return val_str;
+
+	return str;
+}
+
+std::string ATNode :: access_pattern_instr() {
+
+	std::string str = "";
+
+	switch (this->instr_type) {
+		case instr_t::ADD:
+		case instr_t::SUB:
+		case instr_t::MUL:
+		case instr_t::DIV:
+		case instr_t::REM:
+		case instr_t::SHL:
+		case instr_t::SHR:
+		case instr_t::OR:
+		case instr_t::AND:
+		case instr_t::XOR:{
+			str.append("(");
+			str.append(this->children[0]->access_pattern_to_string());
+			str.append(this->op_to_string());
+			str.append(this->children[1]->access_pattern_to_string());
+			str.append(")");
+			break;
+		}
+		case instr_t::PHI: {
+			str.append("PHI{");
+			str.append(this->children[0]->access_pattern_to_string());
+			str.append(this->op_to_string());
+			str.append(this->children[1]->access_pattern_to_string());
+			str.append("}");
+			break;
+		}
+		case instr_t::GETELEPTR: {
+			str.append(this->children[0]->access_pattern_to_string());
+			str.append("[");
+			str.append(this->children[1]->access_pattern_to_string());
+			str.append("]");
+			break;
+		}
+		case instr_t::EXT:
+		case instr_t::LOAD:
+		case instr_t::CALL: {
+			str.append(this->children[0]->access_pattern_to_string());
+			break;
+		}
+		case instr_t::STORE:{
+			str.append(this->children[0]->access_pattern_to_string());
+			break;
+		}
+		default: {
+			errs() << "No valid case in access_pattern_instr()\n";
+			break;
+		}
+	}
+
+	return str;
+}
+
+std::string ATNode :: access_patter_value() {
+
+	std::string str = "";
+
+	switch (this->value_type) {
+		case val_t::CUDA_REG:
+		case val_t::ARG: {
+			str.append(this->name);
+			break;
+		}
+		case val_t::CONST_INT: {
+			str.append(std::to_string(this->int_val));
+			break;
+		}
+		default: {
+			errs() << "No valid case in access_patter_value()\n";
+			break;
+		}
+	}
+
+	return str;
+}
+
+std::string ATNode :: op_to_string() {
+
+	std::string str = "";
+
+	switch (this->instr_type) {
+		case instr_t::ADD: {
+			str = " + ";
+			break;
+		}
+		case instr_t::SUB: {
+			str = " - ";
+			break;
+		}
+		case instr_t::MUL: {
+			str = " * ";
+			break;
+		}
+		case instr_t::DIV: {
+			str = " / ";
+			break;
+		}
+		case instr_t::REM: {
+			str = " % ";
+			break;
+		}
+		case instr_t::SHL: {
+			str = " << ";
+			break;
+		}
+		case instr_t::SHR: {
+			str = " >> ";
+			break;
+		}
+		case instr_t::OR: {
+			str = " | ";
+			break;
+		}
+		case instr_t::AND: {
+			str = " & ";
+			break;
+		}
+		case instr_t::XOR: {
+			str = " ^ ";
+			break;
+		}
+		case instr_t::PHI: {
+			str = ", ";
+			break;
+		}
+		default:
+		break;
+	}
+	return str;
+}
+
+std::string ATNode :: val_t_to_string() {
+
+	return val_t_str[static_cast<int>(this->value_type)];
+}
+
+std::string ATNode :: instr_t_to_string() {
+
+	return instr_t_str[static_cast<int>(this->instr_type)];
 }

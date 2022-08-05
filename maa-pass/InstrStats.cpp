@@ -1,25 +1,24 @@
-#include <iostream>
-#include <algorithm>
-#include <set>
+#include "InstrStats.h"
 
-
-#include <llvm/Analysis/LoopInfo.h>
-#include <llvm/IR/Instructions.h>
+#include "FunctionStats.h"
+#include "ATNode.h"
+#include "Operation.h"
 
 #include "../llvm-rpc-passes/Common.h"
 #include "../llvm-rpc-passes/GridAnalysisPass.h"
 
-#include "FunctionStats.h"
+#include <llvm/Analysis/LoopInfo.h>
+#include <llvm/IR/Instructions.h>
 
-#include "InstrStats.h"
-
-#include "AccessTree.h"
-#include "ATNode.h"
-#include "Operation.h"
+#include <iostream>
+#include <algorithm>
+#include <set>
 
 using namespace llvm;
 
+InstrStats::InstrStats(GridAnalysisPass* GAP) : GAP(GAP) {
 
+}
 
 void InstrStats::analyseInstr(Instruction *I, FunctionStats *func_stats) {
 
@@ -35,18 +34,19 @@ void InstrStats::analyseInstr(Instruction *I, FunctionStats *func_stats) {
 		this->is_load = true;
 	}
 
+	// Value* value = cast<Value>(I);
+
+	errs() << "\n================ Create Access Tree for" << *I << "================ \n";
+	this->root = new ATNode(I, this, nullptr);
+	errs() << "\n============================================================================ \n";
+
+
+	errs() << this->root->access_pattern_to_string() << "\n";
 	// Idee:
 	// Create Tree, save root as member
 	// Fill Tree from Instruction (maybe in a Constructor)
 	// use tree for access pattern and offset stepsize
 
-	ATNode root(I);
-	AccessTree at(&root);
-	errs() << "___________Finished Tree___________\n\n";
-	at.print();
-	errs() << "___________Finished Printing___________\n\n";
-	errs() << at.to_string();
-	errs() << "___________Finished to_string___________\n\n";
 
 	this->getDataAlias(I);
 	this->getLoopDepth(I, func_stats->LI);

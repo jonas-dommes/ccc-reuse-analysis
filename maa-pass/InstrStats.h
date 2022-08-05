@@ -4,17 +4,22 @@
 // #include "InstrStats.fwd.h"
 #include "FunctionStats.fwd.h"
 
-#include <string>
-#include <set>
+// #include "ATNode.h"
+
+#include "../llvm-rpc-passes/GridAnalysisPass.h"
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/Analysis/LoopInfo.h>
+
+#include <string>
+#include <set>
 
 // #include <llvm/IR/Value.h>
 
 
 using namespace llvm;
 
+class ATNode;
 
 #define OP0 0
 #define OP1 1
@@ -24,6 +29,10 @@ class InstrStats{
 
 // DATA
 public:
+	GridAnalysisPass* GAP;
+
+	ATNode* root;
+
 	unsigned int loop_depth = 0;   // 0 -> no loop
 	bool is_conditional = false;
 	bool is_load = false;
@@ -40,6 +49,10 @@ public:
 
 private:
 	std::set<Instruction*> visited_phis;
+
+public:
+	// CONSTRUCTOR
+	InstrStats(GridAnalysisPass* GAP);
 
 // METHODS
 public:
