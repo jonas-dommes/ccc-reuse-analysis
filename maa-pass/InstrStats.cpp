@@ -17,7 +17,7 @@ InstrStats :: InstrStats() {
 }
 
 
-void InstrStats :: analyseInstr(Instruction *I, FunctionStats *func_stats) {
+void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
 	if (isa<StoreInst>(I)) {
 
@@ -75,7 +75,7 @@ void InstrStats :: printInstrStats() {
 
 
 // private:
-void InstrStats :: getDataAlias(Instruction *I) {
+void InstrStats :: getDataAlias(Instruction* I) {
 
 	Instruction* data_instr;
 
@@ -112,7 +112,7 @@ void InstrStats :: getDataAlias(Instruction *I) {
 }
 
 
-unsigned int InstrStats :: getLoopDepth(Instruction *I, LoopInfo *LI) {
+unsigned int InstrStats :: getLoopDepth(Instruction* I, LoopInfo* LI) {
 
 	this->loop_depth = LI->getLoopDepth((I->getParent()));
 
@@ -120,7 +120,7 @@ unsigned int InstrStats :: getLoopDepth(Instruction *I, LoopInfo *LI) {
 }
 
 
-void InstrStats :: isConditional(Instruction *I) {
+void InstrStats :: isConditional(Instruction* I) {
 
 	std::string name = I->getParent()->getName();
 
@@ -133,6 +133,6 @@ void InstrStats :: isConditional(Instruction *I) {
 }
 
 
-void InstrStats :: analyseAccessPattern(Instruction *I) {
+void InstrStats :: analyseAccessPattern(Instruction* I) {
 
 }

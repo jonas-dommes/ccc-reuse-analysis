@@ -29,16 +29,16 @@ struct maa : public FunctionPass {
 	static char ID;
 	maa() : FunctionPass(ID) {}
 
-	void getAnalysisUsage(AnalysisUsage &AU) const override {
+	void getAnalysisUsage(AnalysisUsage& AU) const override {
 		AU.setPreservesCFG();
 		AU.addRequired<LoopInfoWrapperPass>();
 	}
 
 
-	bool runOnFunction(Function &F) override {
+	bool runOnFunction(Function& F) override {
 
 		// getAnalysis<LoopSimplifyID>(F);
-		LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+		LoopInfo* LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
 		FunctionStats func_stats(LI);
 

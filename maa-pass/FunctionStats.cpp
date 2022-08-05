@@ -20,10 +20,10 @@ using namespace llvm;
 
 
 
-FunctionStats :: FunctionStats(LoopInfo *LI) : LI(LI) {}
+FunctionStats :: FunctionStats(LoopInfo* LI) : LI(LI) {}
 
 
-void FunctionStats :: analyseFunction(Function &F){
+void FunctionStats :: analyseFunction(Function& F){
 
 	this->function_name = F.getName();
 
@@ -60,7 +60,7 @@ void FunctionStats :: analyseFunction(Function &F){
 }
 
 
-bool FunctionStats :: isKernel(Function &F) {
+bool FunctionStats :: isKernel(Function& F) {
 
 	bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
 	bool isKernel = isKernelFunction(F);
@@ -116,7 +116,7 @@ void FunctionStats :: evaluateUniques() {
 	this->unique_stores = this->store_addresses.size();
 
 	// Get total unique loads and stores TODO proper addresses
-	std::set<Value *> total;
+	std::set<Value*> total;
 	set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
 	this->unique_total = total.size();
 }

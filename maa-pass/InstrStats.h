@@ -30,7 +30,7 @@ public:
 	bool is_blocksize_dep = false;
 	bool is_gridsize_dep = false;
 	bool first_use = false;            // Addr is used here for the first time
-	Value * addr = nullptr;
+	Value* addr = nullptr;
 	std::string data_alias = "";
 	std::string access_pattern = "";
 
@@ -43,15 +43,15 @@ public:
 
 // METHODS
 public:
-	void analyseInstr(Instruction *I, FunctionStats *func_stats);
+	void analyseInstr(Instruction* I, FunctionStats* func_stats);
 	void printInstrStats();
 
 private:
-	void getDataAlias(Instruction *I);
-	unsigned int getLoopDepth(Instruction *I, LoopInfo *LI);
-	void isConditional(Instruction *I);
+	void getDataAlias(Instruction* I);
+	unsigned int getLoopDepth(Instruction* I, LoopInfo* LI);
+	void isConditional(Instruction* I);
 	unsigned int getAddr();
-	void analyseAccessPattern(Instruction *I);
+	void analyseAccessPattern(Instruction* I);
 
 };
 

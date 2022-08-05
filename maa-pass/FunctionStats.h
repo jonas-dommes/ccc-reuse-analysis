@@ -17,7 +17,7 @@ class FunctionStats {
 
 // DATA
 public:
-	LoopInfo *LI;
+	LoopInfo* LI;
 	std::map<Instruction*, InstrStats> instr_map;
 
 	std::string function_name;
@@ -48,12 +48,12 @@ public:
 
 // METHODS
 public:
-	FunctionStats(LoopInfo *LI);
-	void analyseFunction(Function &F);
+	FunctionStats(LoopInfo* LI);
+	void analyseFunction(Function& F);
 
 private:
 	// Function Wide Analysis
-	bool isKernel(Function &F);
+	bool isKernel(Function& F);
 	void getDimension();
 
 	// Evaluation
