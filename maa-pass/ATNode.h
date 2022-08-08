@@ -50,6 +50,7 @@ public:
 // METHODS
 	void insertChildren(Instruction* I);
 	void handleCallStr();
+	void fillDims();
 	void set_instr_type(Instruction* I);
 
 	void printErrsNode();

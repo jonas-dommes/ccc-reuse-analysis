@@ -25,10 +25,10 @@ public:
 	bool is_load = false;
 	bool is_store = false;
 
-	bool is_tid_dep = false;
-	bool is_bid_dep = false;
-	bool is_blocksize_dep = false;
-	bool is_gridsize_dep = false;
+	int tid_dim = 0;
+	int bid_dim = 0;
+	int block_dim = 0;
+	int grid_dim = 0;
 	bool first_use = false;            // Addr is used here for the first time
 	Value* addr = nullptr;
 	std::string data_alias = "";

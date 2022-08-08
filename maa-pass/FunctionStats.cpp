@@ -35,7 +35,6 @@ void FunctionStats :: analyseFunction(Function& F){
 
 	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
 
-	this->getDimension();
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
@@ -52,6 +51,7 @@ void FunctionStats :: analyseFunction(Function& F){
 		this->instr_map.emplace(&*I, instr_stats);
 	}
 
+	this->getDimension();
 	this->evaluateUniques();
 
 	// Print results
@@ -76,35 +76,21 @@ bool FunctionStats :: isKernel(Function& F) {
 
 void FunctionStats :: getDimension() {
 
+	unsigned int tid_dim = 0;
+	unsigned int bid_dim = 0;
 	unsigned int block_dim = 0;
 	unsigned int grid_dim = 0;
 
-	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
+	for (const auto& [instr, stats]: this->instr_map) {
 
-	// for (auto& call : this->dep_calls.tid_calls) {
-	//
-	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-	// 	if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
-	// }
-	//
-	// for (auto& call : this->dep_calls.bid_calls) {
-	//
-	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-	// 	if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	// }
-	//
-	// for (auto& call : this->dep_calls.blocksize_calls) {
-	//
-	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-	// 	if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
-	// }
-	//
-	// for (auto& call : this->dep_calls.gridsize_calls) {
-	//
-	// 	StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-	// 	if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	// }
+		if (stats.tid_dim > tid_dim) tid_dim = stats.tid_dim;
+		if (stats.bid_dim > bid_dim) bid_dim = stats.bid_dim;
+		if (stats.block_dim > block_dim) block_dim = stats.block_dim;
+		if (stats.grid_dim > grid_dim) grid_dim = stats.grid_dim;
+	}
 
+	this->max_tid_dim = tid_dim;
+	this->max_bid_dim = bid_dim;
 	this->max_block_dim = block_dim;
 	this->max_grid_dim = grid_dim;
 }
@@ -129,16 +115,16 @@ void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 		this->num_loads++;
 		this->load_addresses.insert(instr_stats.addr);
 
-		if (instr_stats.is_tid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->l_num_tid++;
 		}
-		if (instr_stats.is_bid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->l_num_bid++;
 		}
-		if (instr_stats.is_blocksize_dep) {
+		if (instr_stats.block_dim > 0) {
 			this->l_num_bsd++;
 		}
-		if (instr_stats.is_gridsize_dep) {
+		if (instr_stats.grid_dim > 0) {
 			this->l_num_gsd++;
 		}
 	} else if (instr_stats.is_store) {
@@ -146,16 +132,16 @@ void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 		this->num_stores++;
 		this->store_addresses.insert(instr_stats.addr);
 
-		if (instr_stats.is_tid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->s_num_tid++;
 		}
-		if (instr_stats.is_bid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->s_num_bid++;
 		}
-		if (instr_stats.is_blocksize_dep) {
+		if (instr_stats.block_dim > 0) {
 			this->s_num_bsd++;
 		}
-		if (instr_stats.is_gridsize_dep) {
+		if (instr_stats.grid_dim > 0) {
 			this->s_num_gsd++;
 		}
 	}
@@ -167,7 +153,7 @@ void FunctionStats :: printFunctionStats() {
 	printf("\n%s", this->function_name.c_str());
 
 	if (this->is_kernel) {
-		printf(" is kernel function. BlockDim(%d), GridDim(%d)\n", this->max_block_dim, this->max_grid_dim);
+		printf(" is kernel function. BlockDim(%d/%d), GridDim(%d/%d)\n", this->max_tid_dim, this->max_block_dim, this->max_bid_dim, this->max_grid_dim);
 		// printf("\tNum loads  (unique): %2d (%2d)\n", this->num_loads, this->unique_loads);
 		// printf("\tNum stores (unique): %2d (%2d)\n", this->num_stores, this->unique_stores);
 		// printf("\tNum total  (unique): %2d (%2d)\n", this->num_stores + this->num_loads, this->unique_total);

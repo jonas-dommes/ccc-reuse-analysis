@@ -90,6 +90,33 @@ void ATNode :: handleCallStr() {
 
 	call_name.consume_front(prefix);
 	this->name = call_name;
+
+	this->fillDims();
+}
+
+void ATNode :: fillDims() {
+
+	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
+
+	std::pair<StringRef, StringRef> tmp = this->name.split('.');
+
+	if (tmp.first.equals("tid")) { // Thread Id
+
+		if (char_map[tmp.second.front()] > this->instr_stats->tid_dim) this->instr_stats->tid_dim = char_map[tmp.second.front()];
+
+	} else if (tmp.first.equals("ctaid")) { // Block Id
+
+		if (char_map[tmp.second.front()] > this->instr_stats->bid_dim) this->instr_stats->bid_dim = char_map[tmp.second.front()];
+
+	} else if (tmp.first.equals("ntid")) { // Block Dim
+
+		if (char_map[tmp.second.front()] > this->instr_stats->block_dim) this->instr_stats->block_dim = char_map[tmp.second.front()];
+
+	} else if (tmp.first.equals("nctaid")) { // Grid Dim
+
+		if (char_map[tmp.second.front()] > this->instr_stats->grid_dim) this->instr_stats->grid_dim = char_map[tmp.second.front()];
+
+	}
 }
 
 void ATNode :: set_instr_type(Instruction* I) {

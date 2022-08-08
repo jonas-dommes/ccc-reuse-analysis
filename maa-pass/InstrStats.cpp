@@ -51,17 +51,17 @@ void InstrStats :: printInstrStats() {
 	} else if (this->is_store) {
 		printf("\t\tStore");
 	}
-	if (this->is_tid_dep) {
-		printf("\tTID");
+	if (this->tid_dim > 0) {
+		printf("\tTID(%d)", this->tid_dim);
 	}
-	if (this->is_bid_dep) {
-		printf("\tBID");
+	if (this->bid_dim > 0) {
+		printf("\tBID(%d)", this->bid_dim);
 	}
-	if (this->is_blocksize_dep) {
-		printf("\tBSD");
+	if (this->block_dim > 0) {
+		printf("\tBDim(%d)", this->block_dim);
 	}
-	if (this->is_gridsize_dep) {
-		printf("\tGSD");
+	if (this->grid_dim > 0) {
+		printf("\tGDim(%d)", this->grid_dim);
 	}
 	if (this->is_conditional) {
 		printf("\tCOND");

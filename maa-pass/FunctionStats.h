@@ -25,6 +25,8 @@ public:
 	std::set<Value*> load_addresses;
 	std::set<Value*> store_addresses;
 
+	unsigned int max_tid_dim = 0;
+	unsigned int max_bid_dim = 0;
 	unsigned int max_block_dim = 0;
 	unsigned int max_grid_dim = 0;
 
