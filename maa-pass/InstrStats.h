@@ -35,7 +35,6 @@ public:
 	std::string access_pattern = "";
 
 private:
-	std::set<Instruction*> visited_phis;
 
 public:
 	// CONSTRUCTOR

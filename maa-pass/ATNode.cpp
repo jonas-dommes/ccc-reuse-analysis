@@ -12,13 +12,16 @@ using namespace llvm;
 
 
 // Constructor
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name) {}
+
 ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1} {
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
-		errs() << "Insert Instruction" << *I << "\n";
+		errs() << "Insert Children of" << *I << "\n";
+
 		this->set_instr_type(I);
-		this->insertInstruction(I);
+		this->insertChildren(I);
 
 	} else if (Argument* arg = dyn_cast<Argument>(value) ){
 
@@ -48,23 +51,38 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 }
 
 // METHODS
-void ATNode :: insertInstruction(Instruction* I) {
-
-	int i = 0;
+void ATNode :: insertChildren(Instruction* I) {
 
 	if (isa<StoreInst>(I)) {
-		errs() << "\tOp" << i++ << ": " << *I->getOperand(1) << "\n";
+		errs() << "\tOp1" << ": " << *I->getOperand(1) << "\n";
 		this->children.push_back(new ATNode(I->getOperand(1), this->instr_stats, this));
 		return;
 	}
 
+	// Print Operands
+	int i = 0;
 	for (Use& op : I->operands()) {
 		errs() << "\tOp" << i++ << ": " << *op << "\n";
 	}
+
 	for (Use& op : I->operands()) {
+
+		if (Instruction* tmp = dyn_cast<Instruction>(op)) {
+
+			if (isa<PHINode>(tmp) && check_and_add_visited(tmp)) {
+				this->children.push_back(new ATNode(op, this->instr_stats, this, val_t::INC, -1, "INC"));
+				continue;
+			}
+		}
+
+
 		this->children.push_back(new ATNode(op, this->instr_stats, this));
 	}
 
+	// If num ops != num children --> error
+	if (I->getNumOperands() != this->children.size()) {
+		errs() << "[insertChilrdren()] Num Children does not match number of operands\n";
+	}
 }
 
 void ATNode :: handleCallStr() {
@@ -143,6 +161,10 @@ void ATNode :: set_instr_type(Instruction* I) {
 			break;
 		}
 		case Instruction::Trunc:
+		case Instruction::FPToUI:
+		case Instruction::FPToSI:
+		case Instruction::PtrToInt:
+		case Instruction::IntToPtr:
 		case Instruction::SExt:
 		case Instruction::ZExt:
 		case Instruction::BitCast: {
@@ -183,10 +205,11 @@ void ATNode :: printErrsNode() {
 std::string ATNode :: access_pattern_to_string() {
 
 	std::string str = "";
+	visited_phis.clear();
 
 	if (value_type != val_t::NONE) {
 
-		str.append(access_patter_value());
+		str.append(access_pattern_value());
 
 	} else if (instr_type != instr_t::NONE) {
 
@@ -222,11 +245,14 @@ std::string ATNode :: access_pattern_instr() {
 			break;
 		}
 		case instr_t::PHI: {
-			str.append("PHI{");
-			str.append(this->children[0]->access_pattern_to_string());
-			str.append(this->op_to_string());
-			str.append(this->children[1]->access_pattern_to_string());
-			str.append("}");
+			if (check_and_add_visited(cast<Instruction>(this->value)) == false) {
+
+				str.append("PHI{");
+				str.append(this->children[0]->access_pattern_to_string());
+				str.append(this->op_to_string());
+				str.append(this->children[1]->access_pattern_to_string());
+				str.append("}");
+			}
 			break;
 		}
 		case instr_t::GETELEPTR: {
@@ -255,12 +281,13 @@ std::string ATNode :: access_pattern_instr() {
 	return str;
 }
 
-std::string ATNode :: access_patter_value() {
+std::string ATNode :: access_pattern_value() {
 
 	std::string str = "";
 
 	switch (this->value_type) {
 		case val_t::CUDA_REG:
+		case val_t::INC:
 		case val_t::ARG: {
 			str.append(this->name);
 			break;
@@ -270,7 +297,7 @@ std::string ATNode :: access_patter_value() {
 			break;
 		}
 		default: {
-			errs() << "No valid case in access_patter_value()\n";
+			errs() << "No valid case in access_patter_value(): " << *this->parent->value << "\n";
 			break;
 		}
 	}
@@ -341,4 +368,16 @@ std::string ATNode :: val_t_to_string() {
 std::string ATNode :: instr_t_to_string() {
 
 	return instr_t_str[static_cast<int>(this->instr_type)];
+}
+
+bool ATNode :: check_and_add_visited(Instruction *phi) {
+
+	if (this->visited_phis.count(phi) == 0) {
+
+		this->visited_phis.insert(phi);
+		return false; // phi was visited for first time
+
+	}
+
+	return true; // phi was visited before
 }

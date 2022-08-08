@@ -30,9 +30,9 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 		this->is_load = true;
 	}
 
-	errs() << "\n================ Create Access Tree for" << *I << "================ \n";
+	errs() << "\n||||||||||||||||||||||| Create Access Tree for" << *I << "||||||||||||||||||||||| \n";
 	this->root = new ATNode(I, this, nullptr);
-	errs() << "\n=================================================================== \n";
+	errs() << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| \n";
 
 
 	this->access_pattern = this->root->access_pattern_to_string();
