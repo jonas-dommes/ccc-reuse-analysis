@@ -74,8 +74,6 @@ void ATNode :: insertChildren(Instruction* I) {
 				continue;
 			}
 		}
-
-
 		this->children.push_back(new ATNode(op, this->instr_stats, this));
 	}
 

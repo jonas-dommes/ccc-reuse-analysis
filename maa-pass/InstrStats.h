@@ -46,7 +46,7 @@ public:
 	void printInstrStats();
 
 private:
-	void getDataAlias(Instruction* I);
+	void getDataAlias();
 	unsigned int getLoopDepth(Instruction* I, LoopInfo* LI);
 	void isConditional(Instruction* I);
 	unsigned int getAddr();

@@ -37,7 +37,7 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
 	this->access_pattern = this->root->access_pattern_to_string();
 
-	this->getDataAlias(I);
+	this->getDataAlias();
 	this->getLoopDepth(I, func_stats->LI);
 	this->isConditional(I);
 	this->analyseAccessPattern(I);
@@ -75,40 +75,16 @@ void InstrStats :: printInstrStats() {
 
 
 // private:
-void InstrStats :: getDataAlias(Instruction* I) {
+void InstrStats :: getDataAlias() {
 
-	Instruction* data_instr;
+	ATNode* cur_node = this->root;
 
-	if (this->is_load) {
-		data_instr = cast<Instruction>(I->getOperand(0));
-		// errs() << *cast<Instruction>(I->getOperand(0)) << "\n";
-	} else if (this->is_store) {
-		data_instr = cast<Instruction>(I->getOperand(1));
-	}
-	// errs() << "Before while for " << *data_instr << "\n";
+	while (cur_node->instr_type != instr_t::NONE) {
 
-	// TODO: Handle PHI nodes
-	while (isa<GetElementPtrInst>(data_instr) == false) {
-
-		// errs() << "\tInstr has operand 0: " << *data_instr->getOperand(0) << "\n";
-		// errs() << "\t\tOperand Type:      " << typeid(*data_instr->getOperand(0)).name() << "\n";
-
-		if (isa<Instruction>(*data_instr->getOperand(0))) {
-
-			data_instr = dyn_cast<Instruction>(data_instr->getOperand(0));
-			// errs() << "\tdata_instr is now:   " << *data_instr << "\n";
-
-		} else {
-			this->data_alias = data_instr->getOperand(0)->getName();
-			break;
-		}
+		cur_node = cur_node->children[0];
 	}
 
-	if (isa<GetElementPtrInst>(data_instr) == true) {
-		// errs() << "Found getElemtPtr: " << *data_instr << "\n";
-		this->data_alias = data_instr->getOperand(0)->getName();
-	}
-
+	this->data_alias = cur_node->name;
 }
 
 
