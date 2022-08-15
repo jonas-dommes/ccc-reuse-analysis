@@ -10,6 +10,8 @@
 #include <iostream>
 #include <algorithm>
 #include <set>
+#include <queue>
+
 
 using namespace llvm;
 
@@ -30,9 +32,9 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 		this->is_load = true;
 	}
 
-	errs() << "\n||||||||||||||||||||||| Create Access Tree for" << *I << "||||||||||||||||||||||| \n";
+	errs() << "\n_____ Create Access Tree for" << *I << " _____\n";
 	this->root = new ATNode(I, this, nullptr);
-	errs() << "\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| \n";
+	errs() << "\n________________________________________________________\n";
 
 
 	this->access_pattern = this->root->access_pattern_to_string();
@@ -85,6 +87,35 @@ void InstrStats :: getDataAlias() {
 	}
 
 	this->data_alias = cur_node->name;
+}
+
+
+void InstrStats :: analyseAlias() {
+
+	ATNode* cur_node = this->root;
+
+}
+
+
+std::set<ATNode*> InstrStats :: getNodesByInstr_t(instr_t instr_type) {
+
+	std::queue<ATNode*> worklist;
+	std::set<ATNode*> result;
+
+	worklist.push(this->root);
+
+	while (!worklist.empty()) {
+
+		ATNode* cur_node = worklist.front();
+		worklist.pop();
+
+		if (cur_node->instr_type == instr_type) result.insert(cur_node);
+
+		for (ATNode* child : cur_node->children) {
+			worklist.push(child);
+		}
+	}
+	return result;
 }
 
 

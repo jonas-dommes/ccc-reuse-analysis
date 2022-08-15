@@ -47,6 +47,8 @@ public:
 
 private:
 	void getDataAlias();
+	void analyseAlias();
+	std::set<ATNode*> getNodesByInstr_t(instr_t instr_type);
 	unsigned int getLoopDepth(Instruction* I, LoopInfo* LI);
 	void isConditional(Instruction* I);
 	unsigned int getAddr();
