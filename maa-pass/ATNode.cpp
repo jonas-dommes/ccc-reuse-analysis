@@ -182,7 +182,7 @@ void ATNode :: set_instr_type(Instruction* I) {
 			break;
 		}
 		case Instruction::GetElementPtr: {
-			this->instr_type = instr_t::GETELEPTR;
+			this->instr_type = instr_t::GEP;
 			break;
 		}
 		case Instruction::Trunc:
@@ -280,7 +280,7 @@ std::string ATNode :: access_pattern_instr() {
 			}
 			break;
 		}
-		case instr_t::GETELEPTR: {
+		case instr_t::GEP: {
 			str.append(this->children[0]->access_pattern_to_string());
 			str.append("[");
 			str.append(this->children[1]->access_pattern_to_string());

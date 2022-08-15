@@ -79,14 +79,16 @@ void InstrStats :: printInstrStats() {
 // private:
 void InstrStats :: getDataAlias() {
 
-	ATNode* cur_node = this->root;
+	std::set<ATNode*> GEPs = this->getNodesByInstr_t(instr_t::GEP);
 
-	while (cur_node->instr_type != instr_t::NONE) {
-
-		cur_node = cur_node->children[0];
+	if (GEPs.size() != 1) {
+		errs() << "[getDataAlias()] Found unexpected number of GEPs: " << GEPs.size() << "\n";
+		return;
 	}
 
-	this->data_alias = cur_node->name;
+	ATNode* cur_node = *GEPs.begin();
+
+	this->data_alias = cur_node->children[0]->name;
 }
 
 
