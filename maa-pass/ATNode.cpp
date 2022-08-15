@@ -306,6 +306,7 @@ std::string ATNode :: access_pattern_instr() {
 	return str;
 }
 
+
 std::string ATNode :: access_pattern_value() {
 
 	std::string str = "";
@@ -329,6 +330,40 @@ std::string ATNode :: access_pattern_value() {
 
 	return str;
 }
+
+
+bool ATNode :: isBinary() {
+
+	switch (this->instr_type) {
+		case instr_t::ADD:
+		case instr_t::SUB:
+		case instr_t::MUL:
+		case instr_t::DIV:
+		case instr_t::REM:
+		case instr_t::SHL:
+		case instr_t::SHR:
+		case instr_t::OR:
+		case instr_t::AND:
+		case instr_t::XOR:{
+			return true;
+		}
+		case instr_t::PHI:
+		case instr_t::GEP:
+		case instr_t::EXT:
+		case instr_t::LOAD:
+		case instr_t::CALL:
+		case instr_t::STORE:{
+			break;
+		}
+
+		default: {
+			errs() << "No valid case in access_pattern_instr()\n";
+			break;
+		}
+	}
+	return false;
+}
+
 
 std::string ATNode :: op_to_string() {
 

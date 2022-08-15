@@ -57,6 +57,7 @@ public:
 	std::string access_pattern_to_string();
 	std::string access_pattern_instr();
 	std::string access_pattern_value();
+	bool isBinary();
 	std::string op_to_string();
 	std::string val_t_to_string();
 	std::string instr_t_to_string();
