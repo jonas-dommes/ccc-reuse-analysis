@@ -210,8 +210,8 @@ void ATNode :: printErrsNode() {
 	if(this->parent != nullptr) errs() << "Parent:" << *this->parent->value << "\n";
 
 	int i = 0;
-	for (ATNode* val : children) {
-		errs() << "Child" << i++ << ":" <<*val->value << "\n";
+	for (ATNode* val : this->children) {
+		errs() << "Child" << i++ << ":" << *val->value << "\n";
 	}
 
 	errs() << "instr_t: " << this->instr_t_to_string() << " val_t: " << this->val_t_to_string() << "\n";
