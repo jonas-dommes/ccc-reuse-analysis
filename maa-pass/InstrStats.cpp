@@ -15,34 +15,36 @@
 
 using namespace llvm;
 
-InstrStats :: InstrStats() {
-}
+InstrStats :: InstrStats() {}
 
 
 void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
-	if (isa<StoreInst>(I)) {
 
-		this->addr = I->getOperand(1);
+
+	if (StoreInst* storeInst = dyn_cast<StoreInst>(I)) {
+
+		this->addr = storeInst->getPointerOperand();
 		this->is_store = true;
+		this->type_size = func_stats->DL->getTypeAllocSize(storeInst->getPointerOperandType()->getPointerElementType());
 
-	} else if (isa<LoadInst>(I)) {
+	} else if (LoadInst* loadInst = dyn_cast<LoadInst>(I)) {
 
-		this->addr = I->getOperand(0);
+		this->addr = loadInst->getPointerOperand();
 		this->is_load = true;
+		this->type_size = func_stats->DL->getTypeAllocSize(loadInst->getPointerOperandType()->getPointerElementType());
 	}
 
-	errs() << "\n_____ Create Access Tree for" << *I << " _____\n";
+	errs() << "\n_____ Analyse Instr: " << *I << " _____\n";
 	this->root = new ATNode(I, this, nullptr);
-	errs() << "\n________________________________________________________\n";
-
 
 	this->access_pattern = this->root->access_pattern_to_string();
 
-	this->getDataAlias();
+	this->analyseAlias();
 	this->getLoopDepth(I, func_stats->LI);
 	this->isConditional(I);
 	this->analyseAccessPattern(I);
+	errs() << "\n________________________________________________________\n";
 }
 
 
@@ -71,32 +73,29 @@ void InstrStats :: printInstrStats() {
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
-	printf("\t\tAddr: %p\t\t Alias: %s\n", this->addr, this->data_alias.c_str());
+	printf("\t\tAddr: %p\t\t Alias: %s(%d Byte, Space %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
 }
 
 
 // private:
-void InstrStats :: getDataAlias() {
+void InstrStats :: analyseAlias() {
 
+	// Get all ElementPtr Instructions
 	std::set<ATNode*> GEPs = this->getNodesByInstr_t(instr_t::GEP);
 
+	// Only one is expected to be found
 	if (GEPs.size() != 1) {
 		errs() << "[getDataAlias()] Found unexpected number of GEPs: " << GEPs.size() << "\n";
 		return;
 	}
 
-	ATNode* cur_node = *GEPs.begin();
+	ATNode* GEP_node = *GEPs.begin();
+	this->data_alias = GEP_node->children[0]->name;
 
-	this->data_alias = cur_node->children[0]->name;
-}
-
-
-void InstrStats :: analyseAlias() {
-
-	ATNode* cur_node = this->root;
-
-}
+	GetElementPtrInst* GEP_instr = cast<GetElementPtrInst>(GEP_node->value);
+	this->addr_space = GEP_instr->getAddressSpace();
+	}
 
 
 std::set<ATNode*> InstrStats :: getNodesByInstr_t(instr_t instr_type) {

@@ -32,6 +32,8 @@ public:
 	bool first_use = false;            // Addr is used here for the first time
 	Value* addr = nullptr;
 	std::string data_alias = "";
+	int type_size = 0;
+	int addr_space = -1;
 	std::string access_pattern = "";
 
 private:
@@ -46,7 +48,6 @@ public:
 	void printInstrStats();
 
 private:
-	void getDataAlias();
 	void analyseAlias();
 	std::set<ATNode*> getNodesByInstr_t(instr_t instr_type);
 	unsigned int getLoopDepth(Instruction* I, LoopInfo* LI);
