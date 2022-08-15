@@ -18,6 +18,7 @@ class FunctionStats {
 // DATA
 public:
 	LoopInfo* LI;
+	DataLayout* DL;
 	std::map<Instruction*, InstrStats> instr_map;
 
 	std::string function_name;
@@ -50,7 +51,7 @@ public:
 
 // METHODS
 public:
-	FunctionStats(LoopInfo* LI);
+	FunctionStats(LoopInfo* LI, DataLayout* DL);
 	void analyseFunction(Function& F);
 
 private:

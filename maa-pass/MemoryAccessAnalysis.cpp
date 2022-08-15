@@ -39,8 +39,9 @@ struct maa : public FunctionPass {
 
 		// getAnalysis<LoopSimplifyID>(F);
 		LoopInfo* LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+		DataLayout* DL = new DataLayout(F.getParent());
 
-		FunctionStats func_stats(LI);
+		FunctionStats func_stats(LI, DL);
 
 		func_stats.analyseFunction(F);
 

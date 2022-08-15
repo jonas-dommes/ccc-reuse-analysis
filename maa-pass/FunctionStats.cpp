@@ -20,7 +20,7 @@ using namespace llvm;
 
 
 
-FunctionStats :: FunctionStats(LoopInfo* LI) : LI(LI) {}
+FunctionStats :: FunctionStats(LoopInfo* LI, DataLayout* DL) : LI(LI), DL(DL) {}
 
 
 void FunctionStats :: analyseFunction(Function& F){
