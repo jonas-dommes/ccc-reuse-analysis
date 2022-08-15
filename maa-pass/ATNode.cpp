@@ -18,7 +18,7 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
-		errs() << "Insert Children of" << *I << "\n";
+		// errs() << "Insert Children of" << *I << "\n";
 
 		this->set_instr_type(I);
 		this->insertChildren(I);
@@ -27,20 +27,20 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 
 		this->value_type = val_t::ARG;
 		this->name = arg->getName();
-		errs() << "Added Argument with name " << this->name << "\n";
+		// errs() << "Added Argument with name " << this->name << "\n";
 
 
 	} else if (ConstantInt* const_int = dyn_cast<ConstantInt>(value) ){
 
 		this->value_type = val_t::CONST_INT;
 		this->int_val = const_int->getSExtValue ();
-		errs() << "Added ConstantInt with value " << this->int_val << "\n";
+		// errs() << "Added ConstantInt with value " << this->int_val << "\n";
 
 	} else if (CallInst* call = dyn_cast<CallInst>(this->parent->value) ){
 
 		this->value_type = val_t::CUDA_REG;
 		this->handleCallStr();
-		errs() << "Found CallInst with Functionname: " << this->name << "\n";
+		// errs() << "Found CallInst with Functionname: " << this->name << "\n";
 
 	} else {
 		errs() << "Is none of the above: " << *value << "\n";
@@ -54,16 +54,16 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 void ATNode :: insertChildren(Instruction* I) {
 
 	if (isa<StoreInst>(I)) {
-		errs() << "\tOp1" << ": " << *I->getOperand(1) << "\n";
+		// errs() << "\tOp1" << ": " << *I->getOperand(1) << "\n";
 		this->children.push_back(new ATNode(I->getOperand(1), this->instr_stats, this));
 		return;
 	}
 
-	// Print Operands
-	int i = 0;
-	for (Use& op : I->operands()) {
-		errs() << "\tOp" << i++ << ": " << *op << "\n";
-	}
+	// // Print Operands
+	// int i = 0;
+	// for (Use& op : I->operands()) {
+	// 	errs() << "\tOp" << i++ << ": " << *op << "\n";
+	// }
 
 	for (Use& op : I->operands()) {
 
