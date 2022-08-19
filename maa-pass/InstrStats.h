@@ -35,6 +35,8 @@ public:
 	int type_size = 0;
 	int addr_space = -1;
 	std::string access_pattern = "";
+	int tid_offset[3][3];
+	int bid_offset[3][3];
 
 private:
 
@@ -48,7 +50,9 @@ public:
 	void printInstrStats();
 
 private:
+	void analyseOffset();
 	void analyseAlias();
+	void setTypeSize(Instruction* I, FunctionStats* func_stats);
 	std::set<ATNode*> getNodesByInstr_t(instr_t instr_type);
 	unsigned int getLoopDepth(Instruction* I, LoopInfo* LI);
 	void isConditional(Instruction* I);

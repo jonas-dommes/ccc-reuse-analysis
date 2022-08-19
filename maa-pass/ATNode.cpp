@@ -12,9 +12,9 @@ using namespace llvm;
 
 
 // Constructor
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name) {}
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name), tid_dep{0}, bid_dep{0} {}
 
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1} {
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1}, tid_dep{0}, bid_dep{0} {
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
@@ -46,7 +46,13 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 		errs() << "Is none of the above: " << *value << "\n";
 	}
 
-
+	// Pass up dependence
+	if (this->parent != nullptr) {
+		int i = 0;
+		for (const int &dep : tid_dep) parent->tid_dep[i++] |= dep;
+		i = 0;
+		for (const int &dep : bid_dep) parent->bid_dep[i++] |= dep;
+	}
 	// printErrsNode();
 }
 
@@ -103,10 +109,12 @@ void ATNode :: fillDims() {
 	if (tmp.first.equals("tid")) { // Thread Id
 
 		if (char_map[tmp.second.front()] > this->instr_stats->tid_dim) this->instr_stats->tid_dim = char_map[tmp.second.front()];
+		this->tid_dep[char_map[tmp.second.front()] - 1] = 1;
 
 	} else if (tmp.first.equals("ctaid")) { // Block Id
 
 		if (char_map[tmp.second.front()] > this->instr_stats->bid_dim) this->instr_stats->bid_dim = char_map[tmp.second.front()];
+		this->bid_dep[char_map[tmp.second.front()] - 1] = 1;
 
 	} else if (tmp.first.equals("ntid")) { // Block Dim
 
@@ -203,6 +211,122 @@ void ATNode :: set_instr_type(Instruction* I) {
 	}
 }
 
+
+int ATNode :: calcOffset() {
+
+	// Cases:
+	// get ElementPtr --> multiply by Typesize
+	// Binary --> handle cases
+	int ret = 0;
+
+	if (this->instr_type == instr_t::NONE) {
+
+		// should not get here
+		// Handle value
+		ret = this->offsetValue();
+
+	} else if (this->isBinary()) {
+
+		this->offsetBinary();
+
+	} else { // Is CALL, LOAD, STORE, PHI, GEP, EXT
+
+		this->children.front()->calcOffset();
+	}
+	// errs() << "Returning TidOffset for " << *this->value << " with ret_val = " << ret_val << "\n";
+	return ret;
+}
+
+
+int ATNode :: offsetValue() {
+
+	int ret = 0;
+
+	switch (this->value_type) {
+		case val_t::CUDA_REG: {
+			break;
+		}
+		case val_t::INC: {
+			break;
+		}
+		case val_t::ARG: {
+			break;
+		}
+		case val_t::CONST_INT: {
+			ret = this->int_val;
+			break;
+		}
+		default: {
+			errs() << "No valid case in offsetValue(): " << this->val_t_to_string() << "\n";
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+void ATNode :: offsetBinary() {
+
+	for (ATNode &child : this->children) {
+		if (child->instr_type != instr_t::NONE) {
+			if (child->instr_type != instr_t::CALL) {
+				child->calcOffset();
+			}
+			// else --> use tid_dep for logic
+		} // if value get value
+	}
+
+	switch (this->instr_type) {
+		case instr_t::ADD: {
+
+			break;
+		}
+		case instr_t::SUB: {
+
+			break;
+		}
+		case instr_t::MUL: {
+
+			break;
+		}
+		case instr_t::DIV: {
+
+			break;
+		}
+		case instr_t::REM: {
+
+			break;
+		}
+		case instr_t::SHL: {
+
+			break;
+		}
+		case instr_t::SHR: {
+
+			break;
+		}
+		case instr_t::OR: {
+
+			break;
+		}
+		case instr_t::AND: {
+
+			break;
+		}
+		case instr_t::XOR: {
+
+			break;
+		}
+		default: {
+			errs() << "No valid case in offsetBinary(): " << this->instr_t_to_string() << "\n";
+			break;
+		}
+	}
+
+}
+
+
 void ATNode :: printErrsNode() {
 
 	errs() << "\n============== NODE:" << *this->value << " ============== \n";
@@ -223,6 +347,12 @@ void ATNode :: printErrsNode() {
 			errs() << "name: " << this->name << "\n";
 		}
 	}
+
+	errs() << "tid_dep: (";
+	for (const int &dep : tid_dep) errs() << dep << " ";
+	errs() << ") bid_dep: (";
+	for (const int &dep : bid_dep) errs() << dep << " ";
+	errs() << ")\n";
 
 	errs() << "============== NODE END ============== \n";
 }

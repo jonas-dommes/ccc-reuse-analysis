@@ -37,6 +37,8 @@ public:
 	val_t value_type;
 	int int_val;
 	StringRef name;
+	int tid_dep[3];
+	int bid_dep[3];
 
 public:
 	inline static std::set<Instruction*> visited_phis;
@@ -53,6 +55,9 @@ public:
 	void fillDims();
 	void set_instr_type(Instruction* I);
 
+	int calcOffset();
+	int offsetValue();
+	void offsetBinary();
 	void printErrsNode();
 	std::string access_pattern_to_string();
 	std::string access_pattern_instr();
