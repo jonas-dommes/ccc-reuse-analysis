@@ -212,47 +212,40 @@ void ATNode :: set_instr_type(Instruction* I) {
 	}
 }
 
-int ATNode :: calcOffset() {
-
-	// Cases:
-	// get ElementPtr --> multiply by Typesize
-	// Binary --> handle cases
-	int ret = 0;
+void ATNode :: calcOffset() {
 
 	if (this->instr_type == instr_t::NONE) {
 
-		// should not get here
-		// Handle value
-		ret = this->offsetValue();
+		this->offsetValue();
 
-	} else if (this->isBinary()) {
+	} else {
 
-		this->offsetBinary();
+		for (ATNode* child : this->children) {
+			child->calcOffset();
+		}
+		this->offsetInstr();
 
-	} else { // Is CALL, LOAD, STORE, PHI, GEP, EXT
-
-		this->children.front()->calcOffset();
 	}
-	// errs() << "Returning TidOffset for " << *this->value << " with ret_val = " << ret_val << "\n";
-	return ret;
 }
 
-int ATNode :: offsetValue() {
-
-	int ret = 0;
+void ATNode :: offsetValue() {
 
 	switch (this->value_type) {
 		case val_t::CUDA_REG: {
+			this->offset.val_cuda_reg(this->name);
+			printErrsNode();
 			break;
 		}
 		case val_t::INC: {
+			this->offset.val_inc();
 			break;
 		}
 		case val_t::ARG: {
+			this->offset.val_arg();
 			break;
 		}
 		case val_t::CONST_INT: {
-			ret = this->int_val;
+			this->offset.val_const_int(this->int_val);
 			break;
 		}
 		default: {
@@ -260,53 +253,69 @@ int ATNode :: offsetValue() {
 			break;
 		}
 	}
-
-	return ret;
 }
 
-void ATNode :: offsetBinary() {
+void ATNode :: offsetInstr() {
 
-
+	Offset a, b;
+	a = this->children.front()->offset;
+	b = this->children.back()->offset;
 
 	switch (this->instr_type) {
 		case instr_t::ADD: {
-
+			this->offset.op_add(a, b);
 			break;
 		}
 		case instr_t::SUB: {
-
+			this->offset.op_sub(a, b);
 			break;
 		}
 		case instr_t::MUL: {
-
+			this->offset.op_mul(a, b);
 			break;
 		}
 		case instr_t::DIV: {
-
+			this->offset.op_div(a, b);
 			break;
 		}
 		case instr_t::REM: {
-
+			this->offset.op_rem(a, b);
 			break;
 		}
 		case instr_t::SHL: {
-
+			this->offset.op_shl(a, b);
 			break;
 		}
 		case instr_t::SHR: {
-
+			this->offset.op_shr(a, b);
 			break;
 		}
 		case instr_t::OR: {
-
+			this->offset.op_or(a, b);
 			break;
 		}
 		case instr_t::AND: {
-
+			this->offset.op_and(a, b);
 			break;
 		}
 		case instr_t::XOR: {
-
+			this->offset.op_xor(a, b);
+			break;
+		}
+		case instr_t::PHI: {
+			this->offset.op_phi(a, b);
+			break;
+		}
+		// Pass up from only child:
+		case instr_t::GEP: {
+			this->offset.op_pass_up(b);
+			break;
+		}
+		case instr_t::EXT:
+		case instr_t::LOAD:
+		case instr_t::CALL:
+		case instr_t::STORE: {
+			this->offset.op_pass_up(a);
 			break;
 		}
 		default: {
@@ -314,7 +323,11 @@ void ATNode :: offsetBinary() {
 			break;
 		}
 	}
+}
 
+void ATNode :: offsetMulDep() {
+
+	this->offset.mul_by_dep(this->tid_dep, this->bid_dep);
 }
 
 void ATNode :: printErrsNode() {

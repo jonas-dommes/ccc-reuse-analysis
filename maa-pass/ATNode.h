@@ -57,9 +57,10 @@ public:
 	void fillDims();
 	void set_instr_type(Instruction* I);
 
-	int calcOffset();
-	int offsetValue();
-	void offsetBinary();
+	void calcOffset();
+	void offsetValue();
+	void offsetInstr();
+	void offsetMulDep();
 	void printErrsNode();
 	std::string access_pattern_to_string();
 	std::string access_pattern_instr();

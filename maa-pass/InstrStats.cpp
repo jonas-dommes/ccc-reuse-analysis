@@ -76,7 +76,8 @@ void InstrStats :: printInstrStats() {
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
 	printf("\t\tAddr: %p\t\t Alias: %s(%d Byte, Space %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
-	printf("\t\tTID Offset: %d, %d, %d\t", root->offset.TidOffset[0], root->offset.TidOffset[1], root->offset.TidOffset[2]);
+	printf("\t\tTID Offset: %d, %d, %d\n", root->offset.TidOffset[0], root->offset.TidOffset[1], root->offset.TidOffset[2]);
+	printf("\t\tBID Offset: %d, %d, %d\n", root->offset.BidOffset[0], root->offset.BidOffset[1], root->offset.BidOffset[2]);
 }
 
 
@@ -89,6 +90,7 @@ void InstrStats :: analyseOffset() {
 	}
 
 	this->root->calcOffset();
+	this->root->offsetMulDep();
 }
 
 

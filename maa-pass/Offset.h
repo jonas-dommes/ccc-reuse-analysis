@@ -1,7 +1,12 @@
 #ifndef OFFSET_H
 #define OFFSET_H
 
+#include "llvm/ADT/StringRef.h"
+
 #include <string>
+
+using namespace llvm;
+
 
 class Offset {
 public:
@@ -32,14 +37,16 @@ public:
 	void op_and(Offset a, Offset b);
 	void op_xor(Offset a, Offset b);
 
-	void op_call(Offset a);
 	void op_phi(Offset a, Offset b);
+	void op_pass_up(Offset a);
 
 	// Handle Values
 	void val_const_int(int val);
-	void val_cuda_reg(int* tid_dep, int* bid_dep);
+	void val_cuda_reg(StringRef call_str);
 	void val_inc();
 	void val_arg();
+
+	void mul_by_dep(int* tid_dep, int* bid_dep);
 
 	// Utility
 	std::string to_string();
