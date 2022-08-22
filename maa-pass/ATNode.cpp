@@ -104,26 +104,27 @@ void ATNode :: handleCallStr() {
 void ATNode :: fillDims() {
 
 	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
-
 	std::pair<StringRef, StringRef> tmp = this->name.split('.');
+
+	unsigned int dim = char_map[tmp.second.front()];
 
 	if (tmp.first.equals("tid")) { // Thread Id
 
-		if (char_map[tmp.second.front()] > this->instr_stats->tid_dim) this->instr_stats->tid_dim = char_map[tmp.second.front()];
-		this->tid_dep[char_map[tmp.second.front()] - 1] = 1;
+		if (dim > this->instr_stats->tid_dim) this->instr_stats->tid_dim = dim;
+		this->tid_dep[dim - 1] = 1;
 
 	} else if (tmp.first.equals("ctaid")) { // Block Id
 
-		if (char_map[tmp.second.front()] > this->instr_stats->bid_dim) this->instr_stats->bid_dim = char_map[tmp.second.front()];
-		this->bid_dep[char_map[tmp.second.front()] - 1] = 1;
+		if (dim > this->instr_stats->bid_dim) this->instr_stats->bid_dim = dim;
+		this->bid_dep[dim - 1] = 1;
 
 	} else if (tmp.first.equals("ntid")) { // Block Dim
 
-		if (char_map[tmp.second.front()] > this->instr_stats->block_dim) this->instr_stats->block_dim = char_map[tmp.second.front()];
+		if (dim > this->instr_stats->block_dim) this->instr_stats->block_dim = dim;
 
 	} else if (tmp.first.equals("nctaid")) { // Grid Dim
 
-		if (char_map[tmp.second.front()] > this->instr_stats->grid_dim) this->instr_stats->grid_dim = char_map[tmp.second.front()];
+		if (dim > this->instr_stats->grid_dim) this->instr_stats->grid_dim = dim;
 
 	}
 }
@@ -224,8 +225,9 @@ void ATNode :: calcOffset() {
 			child->calcOffset();
 		}
 		this->offsetInstr();
-
 	}
+
+	errs() << *this->value << "\n" << this->offset.to_string();
 }
 
 void ATNode :: offsetValue() {
@@ -233,7 +235,6 @@ void ATNode :: offsetValue() {
 	switch (this->value_type) {
 		case val_t::CUDA_REG: {
 			this->offset.val_cuda_reg(this->name);
-			printErrsNode();
 			break;
 		}
 		case val_t::INC: {

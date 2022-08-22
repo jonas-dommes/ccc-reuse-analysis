@@ -91,15 +91,6 @@ void Offset :: op_xor(Offset a, Offset b) {
 	}
 }
 
-
-// void Offset :: op_call(Offset a) {
-//
-// 	for (int i = 0; i < 3; i++) {
-// 		this->TidOffset[i] = a.TidOffset[i];
-// 		this->BidOffset[i] = a.BidOffset[i];
-// 	}
-// }
-
 void Offset :: op_phi(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
@@ -133,7 +124,6 @@ void Offset :: val_cuda_reg(StringRef call_str) {
 	}
 
 	std::map<char, unsigned int> char_map {{'x', 0}, {'y', 1}, {'z', 2}};
-
 	std::pair<StringRef, StringRef> tmp = call_str.split('.');
 
 	unsigned int dim = char_map[tmp.second.front()];
@@ -156,10 +146,8 @@ void Offset :: val_cuda_reg(StringRef call_str) {
 
 	} else if (tmp.first.equals("nctaid")) { // Grid Dim
 
-		// this->BidOffset[char_map[tmp.second.front()]] = 256;
-
+		this->BidOffset[char_map[tmp.second.front()]] = 1024;
 	}
-
 }
 
 void Offset :: val_inc() {
@@ -173,8 +161,8 @@ void Offset :: val_inc() {
 void Offset :: val_arg() {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = 0;
-		this->BidOffset[i] = 0;
+		this->TidOffset[i] = 40;
+		this->BidOffset[i] = 40;
 	}
 }
 
@@ -190,7 +178,7 @@ void Offset :: mul_by_dep(int* tid_dep, int* bid_dep) {
 // Utlity
 std::string Offset :: to_string() {
 
-	std::string str = "TidOffset[";
+	std::string str = "\tTidOffset[";
 	for (int& offset : this->TidOffset) {
 		str.append(std::to_string(offset));
 		str.append(", ");
@@ -198,7 +186,7 @@ std::string Offset :: to_string() {
 	str.pop_back();
 	str.pop_back();
 
-	str.append("]\nBidOffset[");
+	str.append("]\n\tBidOffset[");
 	for (int& offset : this->BidOffset) {
 		str.append(std::to_string(offset));
 		str.append(", ");
