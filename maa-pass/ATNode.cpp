@@ -1,6 +1,7 @@
 #include "ATNode.h"
 
 #include "InstrStats.h"
+#include "Offset.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include <llvm/IR/Instructions.h>
@@ -12,9 +13,9 @@ using namespace llvm;
 
 
 // Constructor
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name), tid_dep{0}, bid_dep{0} {}
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name), tid_dep{0}, bid_dep{0}, offset() {}
 
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1}, tid_dep{0}, bid_dep{0} {
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1}, tid_dep{0}, bid_dep{0}, offset() {
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
@@ -211,7 +212,6 @@ void ATNode :: set_instr_type(Instruction* I) {
 	}
 }
 
-
 int ATNode :: calcOffset() {
 
 	// Cases:
@@ -236,7 +236,6 @@ int ATNode :: calcOffset() {
 	// errs() << "Returning TidOffset for " << *this->value << " with ret_val = " << ret_val << "\n";
 	return ret;
 }
-
 
 int ATNode :: offsetValue() {
 
@@ -265,17 +264,9 @@ int ATNode :: offsetValue() {
 	return ret;
 }
 
-
 void ATNode :: offsetBinary() {
 
-	for (ATNode &child : this->children) {
-		if (child->instr_type != instr_t::NONE) {
-			if (child->instr_type != instr_t::CALL) {
-				child->calcOffset();
-			}
-			// else --> use tid_dep for logic
-		} // if value get value
-	}
+
 
 	switch (this->instr_type) {
 		case instr_t::ADD: {
@@ -326,7 +317,6 @@ void ATNode :: offsetBinary() {
 
 }
 
-
 void ATNode :: printErrsNode() {
 
 	errs() << "\n============== NODE:" << *this->value << " ============== \n";
@@ -353,6 +343,8 @@ void ATNode :: printErrsNode() {
 	errs() << ") bid_dep: (";
 	for (const int &dep : bid_dep) errs() << dep << " ";
 	errs() << ")\n";
+
+	errs() << this->offset.to_string();
 
 	errs() << "============== NODE END ============== \n";
 }
@@ -436,7 +428,6 @@ std::string ATNode :: access_pattern_instr() {
 	return str;
 }
 
-
 std::string ATNode :: access_pattern_value() {
 
 	std::string str = "";
@@ -460,7 +451,6 @@ std::string ATNode :: access_pattern_value() {
 
 	return str;
 }
-
 
 bool ATNode :: isBinary() {
 
@@ -493,7 +483,6 @@ bool ATNode :: isBinary() {
 	}
 	return false;
 }
-
 
 std::string ATNode :: op_to_string() {
 

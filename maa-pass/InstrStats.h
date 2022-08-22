@@ -35,8 +35,6 @@ public:
 	int type_size = 0;
 	int addr_space = -1;
 	std::string access_pattern = "";
-	int tid_offset[3][3];
-	int bid_offset[3][3];
 
 private:
 

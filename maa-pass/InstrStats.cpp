@@ -15,7 +15,7 @@
 
 using namespace llvm;
 
-InstrStats :: InstrStats() : tid_offset{{}}, bid_offset{{}} {}
+InstrStats :: InstrStats() {}
 
 
 void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
@@ -76,12 +76,7 @@ void InstrStats :: printInstrStats() {
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
 	printf("\t\tAddr: %p\t\t Alias: %s(%d Byte, Space %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
-	printf("\t\tTID Offset x: %d, %d, %d\t", this->tid_offset[0][0], this->tid_offset[0][1], this->tid_offset[0][2]);
-	printf("y: %d, %d, %d\t", this->tid_offset[1][0], this->tid_offset[1][1], this->tid_offset[1][2]);
-	printf("z: %d, %d, %d\n", this->tid_offset[2][0], this->tid_offset[2][1], this->tid_offset[2][2]);
-	printf("\t\tBID Offset x: %d, %d, %d\t", this->bid_offset[0][0], this->bid_offset[0][1], this->bid_offset[0][2]);
-	printf("y: %d, %d, %d\t", this->bid_offset[1][0], this->bid_offset[1][1], this->bid_offset[1][2]);
-	printf("z: %d, %d, %d\n", this->bid_offset[2][0], this->bid_offset[2][1], this->bid_offset[2][2]);
+	printf("\t\tTID Offset: %d, %d, %d\t", root->offset.TidOffset[0], root->offset.TidOffset[1], root->offset.TidOffset[2]);
 }
 
 
@@ -93,31 +88,7 @@ void InstrStats :: analyseOffset() {
 		return;
 	}
 
-	// // Initialize depending on tid_dep/bid_dep
-	// for (size_t i = 0; i < 3; i++) {
-	//
-	// 	if (this->root->tid_dep[i]) {
-	// 		this->tid_offset[i][0] = 0;
-	// 		this->tid_offset[i][1] = 1;
-	// 		this->tid_offset[i][2] = 32;
-	// 	}
-	//
-	// 	if (this->root->bid_dep[i]) {
-	//
-	// 		this->bid_offset[i][0] = 0;
-	// 		this->bid_offset[i][1] = 1;
-	// 		this->bid_offset[i][2] = 32;
-	// 	}
-	// }
-
 	this->root->calcOffset();
-
-	for (size_t i = 0; i < 3; i++) {
-		for (size_t j = 0; j < 3; j++) {
-			this->tid_offset[i][j] *= this->type_size;
-			this->bid_offset[i][j] *= this->type_size;
-		}
-	}
 }
 
 

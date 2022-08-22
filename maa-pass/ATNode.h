@@ -2,6 +2,7 @@
 #define ATNODE_H
 
 #include "InstrStats.h"
+#include "Offset.h"
 
 #include <llvm/IR/Instructions.h>
 
@@ -39,6 +40,7 @@ public:
 	StringRef name;
 	int tid_dep[3];
 	int bid_dep[3];
+	Offset offset;
 
 public:
 	inline static std::set<Instruction*> visited_phis;
