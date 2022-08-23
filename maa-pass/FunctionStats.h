@@ -1,26 +1,24 @@
 #ifndef FUNCTIONSTATS_H
 #define FUNCTIONSTATS_H
 
-#include "FunctionStats.fwd.h"
 #include "InstrStats.fwd.h"
 
+#include <llvm/IR/Instructions.h>
+#include <llvm/Analysis/LoopInfo.h>
+
+#include <string>
+#include <set>
+
+using namespace llvm;
 
 #define CUDA_TARGET_TRIPLE         "nvptx64-nvidia-cuda"
-
-struct dependance_t {
-	std::set<Instruction*> tid_calls;
-	std::set<Instruction*> bid_calls;
-	std::set<Instruction*> blocksize_calls;
-	std::set<Instruction*> gridsize_calls;
-};
 
 class FunctionStats {
 
 // DATA
-
 public:
-	struct dependance_t dep_calls;
-	LoopInfo *LI;
+	LoopInfo* LI;
+	DataLayout* DL;
 	std::map<Instruction*, InstrStats> instr_map;
 
 	std::string function_name;
@@ -28,6 +26,8 @@ public:
 	std::set<Value*> load_addresses;
 	std::set<Value*> store_addresses;
 
+	unsigned int max_tid_dim = 0;
+	unsigned int max_bid_dim = 0;
 	unsigned int max_block_dim = 0;
 	unsigned int max_grid_dim = 0;
 
@@ -51,12 +51,12 @@ public:
 
 // METHODS
 public:
-	FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI);
-	void analyseFunction(Function &F);
+	FunctionStats(LoopInfo* LI, DataLayout* DL);
+	void analyseFunction(Function& F);
 
 private:
 	// Function Wide Analysis
-	bool isKernel(Function &F);
+	bool isKernel(Function& F);
 	void getDimension();
 
 	// Evaluation

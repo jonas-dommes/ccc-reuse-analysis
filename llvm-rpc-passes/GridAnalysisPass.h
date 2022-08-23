@@ -7,10 +7,15 @@
 #ifndef LLVM_LIB_TRANSFORMS_CUDA_COARSENING_GRIDANALYSISPASS_H
 #define LLVM_LIB_TRANSFORMS_CUDA_COARSENING_GRIDANALYSISPASS_H
 
+#include "Common.h"
+
+#include "llvm/Pass.h"
+
+
 using namespace llvm;
 
-namespace llvm {
-}
+// namespace llvm {
+// }
 
 class GridAnalysisPass : public FunctionPass {
 public:

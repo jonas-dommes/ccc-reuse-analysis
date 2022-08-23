@@ -1,69 +1,29 @@
-#include <iostream>
-#include <string>
+#include "InstrStats.h"
+
+#include "FunctionStats.h"
+
+#include "NVPTXUtilities.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Instructions.h>
 #include "llvm/IR/InstIterator.h"
-
 #include <llvm/Support/raw_ostream.h>
 
-#include "../llvm-rpc-passes/Common.h"
-#include "../llvm-rpc-passes/GridAnalysisPass.h"
-#include "NVPTXUtilities.h"
-
-#include "InstrStats.h"
-
-#include "FunctionStats.h"
+#include <iostream>
+#include <string>
+#include <set>
 
 
 using namespace llvm;
 
-FunctionStats::FunctionStats(GridAnalysisPass *GAP, LoopInfo *LI) {
-
-	this->LI = LI;
-
-	// Copy Tid dependent Instructions
-	for (auto& call : GAP->getThreadIDDependentInstructions()) {
-		this->dep_calls.tid_calls.insert(call);
-	}
-
-	// Copy Bid dependent Instructions
-	for (auto& call : GAP->getBlockIDDependentInstructions()) {
-		this->dep_calls.bid_calls.insert(call);
-	}
-
-	// Copy Blocksize dependent Instructions
-	for (auto& call : GAP->getBlockSizeDependentInstructions()) {
-		this->dep_calls.blocksize_calls.insert(call);
-	}
-
-	// Copy Gridsize dependent Instructions
-	for (auto& call : GAP->getGridSizeDependentInstructions()) {
-		this->dep_calls.gridsize_calls.insert(call);
-	}
-
-	// errs() << "Found " << this->dep_calls.tid_calls.size() << " TID_calls\n";
-	// for (auto& call : this->dep_calls.tid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.bid_calls.size() << " BID_calls\n";
-	// for (auto& call : this->dep_calls.bid_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.blocksize_calls.size() << " blocksize_calls\n";
-	// for (auto& call : this->dep_calls.blocksize_calls) {
-	// 	errs() << *call << "\n";
-	// }
-	// errs() << "Found " << this->dep_calls.gridsize_calls.size() << " gridsize_calls\n";
-	// for (auto& call : this->dep_calls.gridsize_calls) {
-	// 	errs() << *call << "\n";
-	// }
-}
 
 
-void FunctionStats::analyseFunction(Function &F){
+FunctionStats :: FunctionStats(LoopInfo* LI, DataLayout* DL) : LI(LI), DL(DL) {}
+
+
+void FunctionStats :: analyseFunction(Function& F){
 
 	this->function_name = F.getName();
 
@@ -75,7 +35,6 @@ void FunctionStats::analyseFunction(Function &F){
 
 	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
 
-	this->getDimension();
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
 
@@ -89,18 +48,19 @@ void FunctionStats::analyseFunction(Function &F){
 		instr_stats.analyseInstr(&*I, this);
 		this->evaluateInstruction(instr_stats);
 
-		instr_map[&*I] = instr_stats;
+		this->instr_map.emplace(&*I, instr_stats);
 	}
 
+	this->getDimension();
 	this->evaluateUniques();
 
-
+	// Print results
 	this->printFunctionStats();
 	this->printInstrMap();
 }
 
 
-bool FunctionStats::isKernel(Function &F) {
+bool FunctionStats :: isKernel(Function& F) {
 
 	bool isCUDA = F.getParent()->getTargetTriple() == CUDA_TARGET_TRIPLE;
 	bool isKernel = isKernelFunction(F);
@@ -114,71 +74,57 @@ bool FunctionStats::isKernel(Function &F) {
 }
 
 
-void FunctionStats::getDimension() {
+void FunctionStats :: getDimension() {
 
+	unsigned int tid_dim = 0;
+	unsigned int bid_dim = 0;
 	unsigned int block_dim = 0;
 	unsigned int grid_dim = 0;
 
-	std::map<char, unsigned int> char_map {{'x', 1}, {'y', 2}, {'z', 3}};
+	for (const auto& [instr, stats]: this->instr_map) {
 
-	for (auto& call : this->dep_calls.tid_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
+		if (stats.tid_dim > tid_dim) tid_dim = stats.tid_dim;
+		if (stats.bid_dim > bid_dim) bid_dim = stats.bid_dim;
+		if (stats.block_dim > block_dim) block_dim = stats.block_dim;
+		if (stats.grid_dim > grid_dim) grid_dim = stats.grid_dim;
 	}
 
-	for (auto& call : this->dep_calls.bid_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	}
-
-	for (auto& call : this->dep_calls.blocksize_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > block_dim) block_dim = char_map[name.back()];
-	}
-
-	for (auto& call : this->dep_calls.gridsize_calls) {
-
-		StringRef name = cast<CallInst>(call)->getCalledFunction()->getName();
-		if (char_map[name.back()] > grid_dim) grid_dim = char_map[name.back()];
-	}
-
+	this->max_tid_dim = tid_dim;
+	this->max_bid_dim = bid_dim;
 	this->max_block_dim = block_dim;
 	this->max_grid_dim = grid_dim;
 }
 
 
-void FunctionStats::evaluateUniques() {
+void FunctionStats :: evaluateUniques() {
 
 	this->unique_loads = this->load_addresses.size();
 	this->unique_stores = this->store_addresses.size();
 
 	// Get total unique loads and stores TODO proper addresses
-	std::set<Value *> total;
+	std::set<Value*> total;
 	set_union(load_addresses.begin(), load_addresses.end(), store_addresses.begin(), store_addresses.end(), std::inserter(total, total.begin()));
 	this->unique_total = total.size();
 }
 
 
-void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
+void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 
 	if (instr_stats.is_load) {
 
 		this->num_loads++;
 		this->load_addresses.insert(instr_stats.addr);
 
-		if (instr_stats.is_tid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->l_num_tid++;
 		}
-		if (instr_stats.is_bid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->l_num_bid++;
 		}
-		if (instr_stats.is_blocksize_dep) {
+		if (instr_stats.block_dim > 0) {
 			this->l_num_bsd++;
 		}
-		if (instr_stats.is_gridsize_dep) {
+		if (instr_stats.grid_dim > 0) {
 			this->l_num_gsd++;
 		}
 	} else if (instr_stats.is_store) {
@@ -186,28 +132,28 @@ void FunctionStats::evaluateInstruction(InstrStats instr_stats) {
 		this->num_stores++;
 		this->store_addresses.insert(instr_stats.addr);
 
-		if (instr_stats.is_tid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->s_num_tid++;
 		}
-		if (instr_stats.is_bid_dep) {
+		if (instr_stats.tid_dim > 0) {
 			this->s_num_bid++;
 		}
-		if (instr_stats.is_blocksize_dep) {
+		if (instr_stats.block_dim > 0) {
 			this->s_num_bsd++;
 		}
-		if (instr_stats.is_gridsize_dep) {
+		if (instr_stats.grid_dim > 0) {
 			this->s_num_gsd++;
 		}
 	}
 }
 
 
-void FunctionStats::printFunctionStats() {
+void FunctionStats :: printFunctionStats() {
 
 	printf("\n%s", this->function_name.c_str());
 
 	if (this->is_kernel) {
-		printf(" is kernel function. BlockDim(%d), GridDim(%d)\n", this->max_block_dim, this->max_grid_dim);
+		printf(" is kernel function. BlockDim(%d/%d), GridDim(%d/%d)\n", this->max_tid_dim, this->max_block_dim, this->max_bid_dim, this->max_grid_dim);
 		// printf("\tNum loads  (unique): %2d (%2d)\n", this->num_loads, this->unique_loads);
 		// printf("\tNum stores (unique): %2d (%2d)\n", this->num_stores, this->unique_stores);
 		// printf("\tNum total  (unique): %2d (%2d)\n", this->num_stores + this->num_loads, this->unique_total);
@@ -226,7 +172,7 @@ void FunctionStats::printFunctionStats() {
 }
 
 
-void FunctionStats::printInstrMap() {
+void FunctionStats :: printInstrMap() {
 
 	for (auto& elem : instr_map) {
 
