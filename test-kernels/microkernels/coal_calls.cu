@@ -154,8 +154,6 @@ int run_D1_copy_coal12_5() {
 int run_D1_avg2_coal100() {
 
 	int datasize = BLOCKDIM_X * GRIDDIM_X * 2;
-	// printf("datasize: %d\n", datasize);
-	printf("sizeof float: %d\n", sizeof(float));
 
 	// Prepare Kernel dimensions
 	dim3 dimGrid(GRIDDIM_X, 1, 1);
