@@ -1,10 +1,10 @@
+#include "calls_coalescing.cuh"
+#include "test_coalescing.cuh"
+#include "utility.cuh"
+
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
-
-#include "utility.cuh"
-
-#include "test_coalescing.cuh"
 
 #define BLOCKDIM_X 512
 #define BLOCKDIM_Y 1
