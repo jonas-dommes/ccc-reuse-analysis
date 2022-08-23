@@ -4,7 +4,7 @@
 
 #include "utility.cuh"
 
-#include "microkernels.cuh"
+#include "copy.cuh"
 
 #define BLOCKDIM_X 1024
 #define BLOCKDIM_Y 1
@@ -14,7 +14,7 @@
 #define GRIDDIM_Z 1
 
 
-int run_copy1D_c100() {
+int run_copy1D_coal100() {
 
 	int datasize = BLOCKDIM_X * GRIDDIM_X;
 
@@ -44,7 +44,7 @@ int run_copy1D_c100() {
 
 	// Run Kernel
 	checkCuda(cudaEventRecord(startEvent, 0));
-	copy1D_c100<<<dimGrid, dimBlock>>>(d_odata, d_idata);
+	copy1D_coal100<<<dimGrid, dimBlock>>>(d_odata, d_idata);
 	checkCuda(cudaGetLastError());
 	checkCuda(cudaEventRecord(stopEvent, 0));
 	checkCuda(cudaEventSynchronize(stopEvent));

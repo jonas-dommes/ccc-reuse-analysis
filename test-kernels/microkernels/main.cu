@@ -5,9 +5,7 @@
 
 int main(int argc, char **argv) {
 
-	int ms = run_copy1D_c100();
-
-	printf("Runtime of run_copy1D_c100: %d ms\n", ms);
+	printf("Runtime of run_copy1D_c100: %d ms\n", run_copy1D_coal100());
 
 	return 0;
 
