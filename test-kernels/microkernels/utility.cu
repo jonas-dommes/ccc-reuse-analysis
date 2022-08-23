@@ -6,11 +6,11 @@
 #include "utility.cuh"
 
 #define eps 10e-3
+#define DEBUG 1
 
 // Convenience function for checking CUDA runtime API results
 // can be wrapped around any runtime API call. No-op in release builds.
 cudaError_t checkCuda(cudaError_t result) {
-
 	#if defined(DEBUG) || defined(_DEBUG)
 	if (result != cudaSuccess) {
 		fprintf(stderr, "CUDA Runtime Error: %s\n", cudaGetErrorString(result));
@@ -22,7 +22,6 @@ cudaError_t checkCuda(cudaError_t result) {
 
 // Check result for errors, return 1 if result differs
 int check_result(const float *reference, const float *result, int n) {
-
 	for (int i = 0; i < n; i++) {
 		if (abs(reference[i] - result[i]) > eps) {
 			printf("Wrong result: reference[%d] = %.20f\n", i, reference[i]);
@@ -34,7 +33,6 @@ int check_result(const float *reference, const float *result, int n) {
 }
 
 void print_args(int argc, char **argv) {
-
 	if (argc != 4) {
 		printf("Error: Format should be: ./copy num_blocks threads_per_block work_per_thread \n");
 		exit(1);
@@ -45,9 +43,30 @@ void print_args(int argc, char **argv) {
 	}
 }
 
+void init_call_data(struct call_data* data, int datasize) {
+	// Prepare host data structures
+	data->h_idata = (float*) calloc(datasize, sizeof(float));
+	data->h_odata = (float*) calloc(datasize, sizeof(float));
+
+	// Initiallize input array
+	init_random(data->h_idata, datasize);
+
+	// Prepare device data structures
+	checkCuda(cudaMalloc(&data->d_idata, datasize * sizeof(float)));
+	checkCuda(cudaMalloc(&data->d_odata, datasize * sizeof(float)));
+	checkCuda(cudaMemcpy(data->d_idata, data->h_idata, datasize * sizeof(float), cudaMemcpyHostToDevice));
+	checkCuda(cudaMemset(data->d_odata, 0, datasize * sizeof(float)));
+}
+
+void free_call_data(struct call_data* data) {
+	free(data->h_idata);
+	free(data->h_odata);
+	checkCuda(cudaFree(data->d_idata));
+	checkCuda(cudaFree(data->d_odata));
+}
+
 // Initiallize array with random float between 0 and 10
 void init_random(float *array, int n) {
-
 	srand(42);
 
 	for (int i = 0; i < n; i++) {
