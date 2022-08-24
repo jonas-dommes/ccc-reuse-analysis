@@ -14,7 +14,7 @@
 #define GRIDDIM_Z 1
 
 
-int run_D2_ap_transpose_block() {
+int call_D2_ap_transpose_block() {
 
 	int datasize = BLOCKDIM_X * BLOCKDIM_Y;
 
@@ -22,8 +22,8 @@ int run_D2_ap_transpose_block() {
 	dim3 dimBlock(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z);
 	dim3 dimGrid(GRIDDIM_X, GRIDDIM_Y, GRIDDIM_Z);
 
-	struct call_data data;
-	init_call_data(&data, datasize);
+	struct data_float data;
+	init_data_float(&data, datasize);
 
 	// Events for timing
 	cudaEvent_t startEvent, stopEvent;
@@ -33,7 +33,7 @@ int run_D2_ap_transpose_block() {
 
 	// Run Kernel
 	checkCuda(cudaEventRecord(startEvent, 0));
-	D2_ap_transpose_block<<<dimGrid, dimBlock>>>(data.d_odata, data.d_idata);
+	D2_ap_transpose_block<<<dimGrid, dimBlock>>>(data.d_idata, data.d_odata);
 	checkCuda(cudaGetLastError());
 	checkCuda(cudaEventRecord(stopEvent, 0));
 	checkCuda(cudaEventSynchronize(stopEvent));
@@ -43,12 +43,12 @@ int run_D2_ap_transpose_block() {
 	// Cleanup
 	checkCuda(cudaEventDestroy(startEvent));
 	checkCuda(cudaEventDestroy(stopEvent));
-	free_call_data(&data);
+	free_data_float(&data);
 
 	return (int) ms;
 }
 
-int run_D2_ap_transpose() {
+int call_D2_ap_transpose() {
 
 	int datasize = BLOCKDIM_X * BLOCKDIM_Y * BLOCKDIM_Z * GRIDDIM_X * GRIDDIM_Y * GRIDDIM_Z;
 
@@ -56,8 +56,8 @@ int run_D2_ap_transpose() {
 	dim3 dimBlock(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z);
 	dim3 dimGrid(GRIDDIM_X, GRIDDIM_Y, GRIDDIM_Z);
 
-	struct call_data data;
-	init_call_data(&data, datasize);
+	struct data_float data;
+	init_data_float(&data, datasize);
 
 	// Events for timing
 	cudaEvent_t startEvent, stopEvent;
@@ -67,7 +67,7 @@ int run_D2_ap_transpose() {
 
 	// Run Kernel
 	checkCuda(cudaEventRecord(startEvent, 0));
-	D2_ap_transpose<<<dimGrid, dimBlock>>>(data.d_odata, data.d_idata);
+	D2_ap_transpose<<<dimGrid, dimBlock>>>(data.d_idata, data.d_odata);
 	checkCuda(cudaGetLastError());
 	checkCuda(cudaEventRecord(stopEvent, 0));
 	checkCuda(cudaEventSynchronize(stopEvent));
@@ -77,12 +77,12 @@ int run_D2_ap_transpose() {
 	// Cleanup
 	checkCuda(cudaEventDestroy(startEvent));
 	checkCuda(cudaEventDestroy(stopEvent));
-	free_call_data(&data);
+	free_data_float(&data);
 
 	return (int) ms;
 }
 
-int run_D2_ap_stepsize() {
+int call_D2_ap_stepsize() {
 
 	int datasize = BLOCKDIM_X * BLOCKDIM_Y * BLOCKDIM_Z * GRIDDIM_X * GRIDDIM_Y * GRIDDIM_Z;
 
@@ -90,8 +90,8 @@ int run_D2_ap_stepsize() {
 	dim3 dimBlock(BLOCKDIM_X, BLOCKDIM_Y, BLOCKDIM_Z);
 	dim3 dimGrid(GRIDDIM_X, GRIDDIM_Y, GRIDDIM_Z);
 
-	struct call_data data;
-	init_call_data(&data, datasize);
+	struct data_float data;
+	init_data_float(&data, datasize);
 
 	// Events for timing
 	cudaEvent_t startEvent, stopEvent;
@@ -101,7 +101,7 @@ int run_D2_ap_stepsize() {
 
 	// Run Kernel
 	checkCuda(cudaEventRecord(startEvent, 0));
-	D2_ap_stepsize<<<dimGrid, dimBlock>>>(data.d_odata, data.d_idata);
+	D2_ap_stepsize<<<dimGrid, dimBlock>>>(data.d_idata, data.d_odata);
 	checkCuda(cudaGetLastError());
 	checkCuda(cudaEventRecord(stopEvent, 0));
 	checkCuda(cudaEventSynchronize(stopEvent));
@@ -111,7 +111,7 @@ int run_D2_ap_stepsize() {
 	// Cleanup
 	checkCuda(cudaEventDestroy(startEvent));
 	checkCuda(cudaEventDestroy(stopEvent));
-	free_call_data(&data);
+	free_data_float(&data);
 
 	return (int) ms;
 }

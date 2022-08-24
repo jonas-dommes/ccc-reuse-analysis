@@ -43,13 +43,13 @@ void print_args(int argc, char **argv) {
 	}
 }
 
-void init_call_data(struct call_data* data, int datasize) {
+void init_data_float(struct data_float* data, int datasize) {
 	// Prepare host data structures
 	data->h_idata = (float*) calloc(datasize, sizeof(float));
 	data->h_odata = (float*) calloc(datasize, sizeof(float));
 
 	// Initiallize input array
-	init_random(data->h_idata, datasize);
+	init_random_float(data->h_idata, datasize);
 
 	// Prepare device data structures
 	checkCuda(cudaMalloc(&data->d_idata, datasize * sizeof(float)));
@@ -58,7 +58,7 @@ void init_call_data(struct call_data* data, int datasize) {
 	checkCuda(cudaMemset(data->d_odata, 0, datasize * sizeof(float)));
 }
 
-void free_call_data(struct call_data* data) {
+void free_data_float(struct data_float* data) {
 	free(data->h_idata);
 	free(data->h_odata);
 	checkCuda(cudaFree(data->d_idata));
@@ -66,10 +66,41 @@ void free_call_data(struct call_data* data) {
 }
 
 // Initiallize array with random float between 0 and 10
-void init_random(float *array, int n) {
+void init_random_float(float *array, int n) {
 	srand(42);
 
 	for (int i = 0; i < n; i++) {
 		array[i] = ((float) rand()/(float) (RAND_MAX)) * 10;
+	}
+}
+
+void init_data_int(struct data_int* data, int datasize) {
+	// Prepare host data structures
+	data->h_idata = (int*) calloc(datasize, sizeof(int));
+	data->h_odata = (int*) calloc(datasize, sizeof(int));
+
+	// Initiallize input array
+	init_random_int(data->h_idata, datasize);
+
+	// Prepare device data structures
+	checkCuda(cudaMalloc(&data->d_idata, datasize * sizeof(int)));
+	checkCuda(cudaMalloc(&data->d_odata, datasize * sizeof(int)));
+	checkCuda(cudaMemcpy(data->d_idata, data->h_idata, datasize * sizeof(int), cudaMemcpyHostToDevice));
+	checkCuda(cudaMemset(data->d_odata, 0, datasize * sizeof(int)));
+}
+
+void free_data_int(struct data_int* data) {
+	free(data->h_idata);
+	free(data->h_odata);
+	checkCuda(cudaFree(data->d_idata));
+	checkCuda(cudaFree(data->d_odata));
+}
+
+// Initiallize array with random int between 0 and 1000
+void init_random_int(int *array, int n) {
+	srand(42);
+
+	for (int i = 0; i < n; i++) {
+		array[i] = (int) (((float) rand()/(float) (RAND_MAX)) * 1000);
 	}
 }
