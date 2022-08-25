@@ -14,80 +14,180 @@ Offset :: Offset() : TidOffset {-1, -1, -1}, BidOffset {-1, -1, -1} {}
 void Offset :: op_add(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] + b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] + b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] + b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] + b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_sub(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] - b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] - b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] - b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] - b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_mul(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] * b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] * b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] * b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] * b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_div(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] / b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] / b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] / b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] / b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_rem(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] % b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] % b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] % b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] % b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_shl(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] << b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] << b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] << b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] << b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_shr(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] >> b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] >> b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] >> b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] >> b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_or(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] | b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] | b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] | b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] | b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_and(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] & b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] & b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] & b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] & b.BidOffset[i];
+		}
 	}
 }
 
 void Offset :: op_xor(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i] ^ b.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i] ^ b.BidOffset[i];
+		if (a.TidOffset[i] == -1 || b.TidOffset[i] == -1) {
+			if (a.TidOffset[i] == -1) this->TidOffset[i] = b.TidOffset[i];
+			if (b.TidOffset[i] == -1) this->TidOffset[i] = a.TidOffset[i];
+		} else {
+			this->TidOffset[i] = a.TidOffset[i] ^ b.TidOffset[i];
+		}
+		if (a.BidOffset[i] == -1 || b.BidOffset[i] == -1) {
+			if (a.BidOffset[i] == -1) this->BidOffset[i] = b.BidOffset[i];
+			if (b.BidOffset[i] == -1) this->BidOffset[i] = a.BidOffset[i];
+		} else {
+			this->BidOffset[i] = a.BidOffset[i] ^ b.BidOffset[i];
+		}
 	}
 }
 
@@ -118,10 +218,10 @@ void Offset :: val_const_int(int val) {
 
 void Offset :: val_cuda_reg(StringRef call_str) {
 
-	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = 0;
-		this->BidOffset[i] = 0;
-	}
+	// for (int i = 0; i < 3; i++) {
+	// 	this->TidOffset[i] = 0;
+	// 	this->BidOffset[i] = 0;
+	// }
 
 	std::map<char, unsigned int> char_map {{'x', 0}, {'y', 1}, {'z', 2}};
 	std::pair<StringRef, StringRef> tmp = call_str.split('.');
@@ -146,7 +246,7 @@ void Offset :: val_cuda_reg(StringRef call_str) {
 
 	} else if (tmp.first.equals("nctaid")) { // Grid Dim
 
-		this->BidOffset[char_map[tmp.second.front()]] = 1024;
+		this->BidOffset[dim] = 1024;
 	}
 }
 
