@@ -227,7 +227,7 @@ void ATNode :: calcOffset() {
 		this->offsetInstr();
 	}
 
-	errs() << *this->value << "\n" << this->offset.to_string();
+	// errs() << *this->value << "\n" << this->offset.to_string();
 }
 
 void ATNode :: offsetValue() {
