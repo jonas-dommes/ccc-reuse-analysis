@@ -34,6 +34,7 @@ public:
 	std::string data_alias = "";
 	int type_size = 0;
 	int addr_space = -1;
+	int alignment = 0;
 	std::string access_pattern = "";
 
 private:
