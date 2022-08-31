@@ -53,6 +53,8 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
 void InstrStats :: printInstrStats() {
 
+	const std::string addr_space_str[6] = {"Generic", "Global", "Internal Use", "Shared", "Constant", "Local"};
+
 	if (this->is_load) {
 		printf("\t\tLoad ");
 	} else if (this->is_store) {
@@ -76,8 +78,7 @@ void InstrStats :: printInstrStats() {
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
-	printf("\t\tAddr: %p\t\t Alias: %s(%d Byte, Space %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space);
-	printf("\t\tAddr: %p\t\t Alias: %s(Size: %d Byte, Space: %d, Alignment: %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space, this->alignment);
+	printf("\t\tAddr: %p\t Alias: %s[%s](Size: %d Byte, Alignment: %d)\n", this->addr, this->data_alias.c_str(), (this->addr_space >= 0 && this->addr_space < 6) ? addr_space_str[this->addr_space].c_str() : "No Addr Space set", this->type_size, this->alignment);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
 	printf("\t\tTID Offset: %d, %d, %d\n", root->offset.TidOffset[0], root->offset.TidOffset[1], root->offset.TidOffset[2]);
 	printf("\t\tBID Offset: %d, %d, %d\n", root->offset.BidOffset[0], root->offset.BidOffset[1], root->offset.BidOffset[2]);
