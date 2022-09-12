@@ -1,6 +1,8 @@
 #include "Offset.h"
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/raw_ostream.h"
+
 
 #include <map>
 
@@ -289,6 +291,38 @@ std::string Offset :: to_string() {
 	str.pop_back();
 	str.pop_back();
 	str.append("]\n");
+
+	return str;
+}
+
+std::string Offset :: to_string_tid() {
+
+	std::string str = "Id: ";
+	str.append(std::to_string(this->tid));
+	str.append("\tTidOffset[");
+	for (int& offset : this->TidOffset) {
+		str.append(std::to_string(offset));
+		str.append(", ");
+	}
+	str.pop_back();
+	str.pop_back();
+	str.append("]");
+
+	return str;
+}
+
+std::string Offset :: to_string_bid() {
+
+	std::string str = "Id: ";
+	str.append(std::to_string(this->bid));
+	str.append("\tBidOffset[");
+	for (int& offset : this->BidOffset) {
+		str.append(std::to_string(offset));
+		str.append(", ");
+	}
+	str.pop_back();
+	str.pop_back();
+	str.append("]");
 
 	return str;
 }

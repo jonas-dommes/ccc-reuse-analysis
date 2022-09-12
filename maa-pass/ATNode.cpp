@@ -13,9 +13,9 @@ using namespace llvm;
 
 
 // Constructor
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name), tid_dep{0}, bid_dep{0}, offset() {}
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent, val_t value_type, int int_val, StringRef name) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(value_type), int_val(int_val), name(name), tid_dep{0}, bid_dep{0} {}
 
-ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1}, tid_dep{0}, bid_dep{0}, offset() {
+ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value(value), instr_stats(instr_stats), parent(parent), instr_type(instr_t::NONE), value_type(val_t::NONE), int_val{-1}, tid_dep{0}, bid_dep{0} {
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
@@ -215,38 +215,51 @@ void ATNode :: set_instr_type(Instruction* I) {
 
 void ATNode :: calcOffset() {
 
+	this->offsets.push_back(new Offset(1, 1));
+	this->offsets.push_back(new Offset(32, 1));
+
 	if (this->instr_type == instr_t::NONE) {
 
-		this->offsetValue();
+		for (Offset* offset : this->offsets) {
+			this->offsetValue(offset);
+		}
 
 	} else {
 
 		for (ATNode* child : this->children) {
 			child->calcOffset();
 		}
-		this->offsetInstr();
+
+		int i = 0;
+		for (Offset* offset : this->offsets) {
+
+			Offset* a = this->children.front()->offsets.at(i);
+			Offset* b = this->children.back()->offsets.at(i);
+			this->offsetInstr(this->offsets.at(i), a, b);
+			i++;
+		}
 	}
 
-	errs() << *this->value << "\n" << this->offset.to_string();
+	// errs() << *this->value << "\n" << this->offsets.back()->to_string();
 }
 
-void ATNode :: offsetValue() {
+void ATNode :: offsetValue(Offset* offset) {
 
 	switch (this->value_type) {
 		case val_t::CUDA_REG: {
-			this->offset.val_cuda_reg(this->name);
+			offset->val_cuda_reg(this->name);
 			break;
 		}
 		case val_t::INC: {
-			this->offset.val_inc();
+			offset->val_inc();
 			break;
 		}
 		case val_t::ARG: {
-			this->offset.val_arg();
+			offset->val_arg();
 			break;
 		}
 		case val_t::CONST_INT: {
-			this->offset.val_const_int(this->int_val);
+			offset->val_const_int(this->int_val);
 			break;
 		}
 		default: {
@@ -256,67 +269,64 @@ void ATNode :: offsetValue() {
 	}
 }
 
-void ATNode :: offsetInstr() {
-
-	Offset a, b;
-	a = this->children.front()->offset;
-	b = this->children.back()->offset;
+void ATNode :: offsetInstr(Offset* out, Offset* a, Offset* b) {
 
 	switch (this->instr_type) {
 		case instr_t::ADD: {
-			this->offset.op_add(a, b);
+			out->op_add(*a, *b);
 			break;
 		}
 		case instr_t::SUB: {
-			this->offset.op_sub(a, b);
+			out->op_sub(*a, *b);
 			break;
 		}
 		case instr_t::MUL: {
-			this->offset.op_mul(a, b);
+			out->op_mul(*a, *b);
 			break;
 		}
 		case instr_t::DIV: {
-			this->offset.op_div(a, b);
+			out->op_div(*a, *b);
 			break;
 		}
 		case instr_t::REM: {
-			this->offset.op_rem(a, b);
+			out->op_rem(*a, *b);
 			break;
 		}
 		case instr_t::SHL: {
-			this->offset.op_shl(a, b);
+			out->op_shl(*a, *b);
 			break;
 		}
 		case instr_t::SHR: {
-			this->offset.op_shr(a, b);
+			out->op_shr(*a, *b);
 			break;
 		}
 		case instr_t::OR: {
-			this->offset.op_or(a, b);
+			out->op_or(*a, *b);
 			break;
 		}
 		case instr_t::AND: {
-			this->offset.op_and(a, b);
+			out->op_and(*a, *b);
 			break;
 		}
 		case instr_t::XOR: {
-			this->offset.op_xor(a, b);
+			out->op_xor(*a, *b);
 			break;
 		}
 		case instr_t::PHI: {
-			this->offset.op_phi(a, b);
+			// call once with a, once with b
+			out->op_phi(*a, *b);
 			break;
 		}
 		// Pass up from only child:
 		case instr_t::GEP: {
-			this->offset.op_pass_up(b);
+			out->op_pass_up(*b);
 			break;
 		}
 		case instr_t::EXT:
 		case instr_t::LOAD:
 		case instr_t::CALL:
 		case instr_t::STORE: {
-			this->offset.op_pass_up(a);
+			out->op_pass_up(*a);
 			break;
 		}
 		default: {
@@ -328,7 +338,9 @@ void ATNode :: offsetInstr() {
 
 void ATNode :: offsetMulDep() {
 
-	this->offset.mul_by_dep(this->tid_dep, this->bid_dep);
+	for (Offset* offset : this->offsets) {
+		offset->mul_by_dep(this->tid_dep, this->bid_dep);
+	}
 }
 
 void ATNode :: printErrsNode() {
@@ -358,7 +370,7 @@ void ATNode :: printErrsNode() {
 	for (const int &dep : bid_dep) errs() << dep << " ";
 	errs() << ")\n";
 
-	errs() << this->offset.to_string();
+	errs() << this->offsets.front()->to_string();
 
 	errs() << "============== NODE END ============== \n";
 }

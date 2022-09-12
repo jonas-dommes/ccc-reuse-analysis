@@ -6,6 +6,8 @@
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
+#include "llvm/Support/raw_ostream.h"
+
 
 #include <iostream>
 #include <algorithm>
@@ -76,8 +78,13 @@ void InstrStats :: printInstrStats() {
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
 	printf("\t\tAddr: %p\t\t Alias: %s(%d Byte, Space %d)\n", this->addr, this->data_alias.c_str(), this->type_size, this->addr_space);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
-	printf("\t\tTID Offset: %d, %d, %d\n", root->offset.TidOffset[0], root->offset.TidOffset[1], root->offset.TidOffset[2]);
-	printf("\t\tBID Offset: %d, %d, %d\n", root->offset.BidOffset[0], root->offset.BidOffset[1], root->offset.BidOffset[2]);
+
+	for (Offset* offset : root->offsets) {
+		printf("\t\t%s\n", offset->to_string_tid().c_str());
+	}
+	for (Offset* offset : root->offsets) {
+		printf("\t\t%s\n", offset->to_string_bid().c_str());
+	}
 }
 
 

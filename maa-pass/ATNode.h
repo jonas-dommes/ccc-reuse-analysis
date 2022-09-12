@@ -40,7 +40,7 @@ public:
 	StringRef name;
 	int tid_dep[3];
 	int bid_dep[3];
-	Offset offset;
+	std::vector<Offset*> offsets;
 
 public:
 	inline static std::set<Instruction*> visited_phis;
@@ -58,8 +58,8 @@ public:
 	void set_instr_type(Instruction* I);
 
 	void calcOffset();
-	void offsetValue();
-	void offsetInstr();
+	void offsetValue(Offset* offset);
+	void offsetInstr(Offset* out, Offset* a, Offset* b);
 	void offsetMulDep();
 	void printErrsNode();
 	std::string access_pattern_to_string();

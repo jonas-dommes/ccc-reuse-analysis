@@ -52,6 +52,8 @@ public:
 
 	// Utility
 	std::string to_string();
+	std::string to_string_tid();
+	std::string to_string_bid();	
 };
 
 
