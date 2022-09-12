@@ -7,7 +7,7 @@
 using namespace llvm;
 
 
-Offset :: Offset() : TidOffset {-1, -1, -1}, BidOffset {-1, -1, -1} {}
+Offset :: Offset(int tid, int bid) : tid{tid}, bid{bid}, TidOffset {-1, -1, -1}, BidOffset {-1, -1, -1} {}
 
 
 // Handle Ops
@@ -218,11 +218,6 @@ void Offset :: val_const_int(int val) {
 
 void Offset :: val_cuda_reg(StringRef call_str) {
 
-	// for (int i = 0; i < 3; i++) {
-	// 	this->TidOffset[i] = 0;
-	// 	this->BidOffset[i] = 0;
-	// }
-
 	std::map<char, unsigned int> char_map {{'x', 0}, {'y', 1}, {'z', 2}};
 	std::pair<StringRef, StringRef> tmp = call_str.split('.');
 
@@ -230,11 +225,11 @@ void Offset :: val_cuda_reg(StringRef call_str) {
 
 	if (tmp.first.equals("tid")) { // Thread Id
 
-		this->TidOffset[dim] = 1;
+		this->TidOffset[dim] = this->tid;
 
 	} else if (tmp.first.equals("ctaid")) { // Block Id
 
-		this->BidOffset[dim] = 1;
+		this->BidOffset[dim] = this->bid;
 
 	} else if (tmp.first.equals("ntid")) { // Block Dim
 

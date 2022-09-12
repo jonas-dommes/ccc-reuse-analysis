@@ -11,6 +11,8 @@ using namespace llvm;
 class Offset {
 public:
 // DATA
+	int tid;
+	int bid;
 	int TidOffset[3];
 	int BidOffset[3];
 
@@ -23,7 +25,7 @@ public:
 	// };
 
 // METHODS
-	Offset();
+	Offset(int tid, int bid);
 
 	// Handle Ops
 	void op_add(Offset a, Offset b);
