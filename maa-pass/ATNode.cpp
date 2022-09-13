@@ -215,6 +215,7 @@ void ATNode :: set_instr_type(Instruction* I) {
 
 void ATNode :: calcOffset() {
 
+	this->offsets.push_back(new Offset(0, 1));
 	this->offsets.push_back(new Offset(1, 1));
 	this->offsets.push_back(new Offset(32, 1));
 
@@ -240,7 +241,8 @@ void ATNode :: calcOffset() {
 		}
 	}
 
-	// errs() << *this->value << "\n" << this->offsets.back()->to_string();
+	errs() << *this->value << "\n" << this->offsets.front()->to_string();
+	errs() << this->offsets.back()->to_string();
 }
 
 void ATNode :: offsetValue(Offset* offset) {

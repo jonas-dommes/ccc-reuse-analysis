@@ -196,8 +196,8 @@ void Offset :: op_xor(Offset a, Offset b) {
 void Offset :: op_phi(Offset a, Offset b) {
 
 	for (int i = 0; i < 3; i++) {
-		this->TidOffset[i] = a.TidOffset[i];
-		this->BidOffset[i] = a.BidOffset[i];
+		this->TidOffset[i] = a.TidOffset[i] > b.TidOffset[i] ? a.TidOffset[i] : b.TidOffset[i];
+		this->BidOffset[i] = a.BidOffset[i] > b.BidOffset[i] ? a.BidOffset[i] : b.BidOffset[i];
 	}
 }
 
