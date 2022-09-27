@@ -19,7 +19,7 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 
 	if (Instruction* I = dyn_cast<Instruction>(value)) {
 
-		// errs() << "Insert Children of" << *I << "\n";
+		errs() << "Insert Children of" << *I << "\n";
 
 		this->set_instr_type(I);
 		this->insertChildren(I);
@@ -28,23 +28,23 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 
 		this->value_type = val_t::ARG;
 		this->name = arg->getName();
-		// errs() << "Added Argument with name " << this->name << "\n";
+		errs() << "Added Argument with name " << this->name << "\n";
 
 
 	} else if (ConstantInt* const_int = dyn_cast<ConstantInt>(value) ){
 
 		this->value_type = val_t::CONST_INT;
 		this->int_val = const_int->getSExtValue ();
-		// errs() << "Added ConstantInt with value " << this->int_val << "\n";
+		errs() << "Added ConstantInt with value " << this->int_val << "\n";
 
 	} else if (CallInst* call = dyn_cast<CallInst>(this->parent->value) ){
 
 		this->value_type = val_t::CUDA_REG;
 		this->handleCallStr();
-		// errs() << "Found CallInst with Functionname: " << this->name << "\n";
+		errs() << "Found CallInst with Functionname: " << this->name << "\n";
 
 	} else {
-		errs() << "Is none of the above: " << *value << "\n";
+		errs() << "[ATNode()] Is none of the above: " << *value << "\n";
 	}
 
 	// Pass up dependence
@@ -202,6 +202,7 @@ void ATNode :: set_instr_type(Instruction* I) {
 		case Instruction::IntToPtr:
 		case Instruction::SExt:
 		case Instruction::ZExt:
+		case Instruction::AddrSpaceCast:
 		case Instruction::BitCast: {
 			this->instr_type = instr_t::EXT;
 			break;
@@ -241,8 +242,8 @@ void ATNode :: calcOffset() {
 		}
 	}
 
-	errs() << *this->value << "\n" << this->offsets.front()->to_string();
-	errs() << this->offsets.back()->to_string();
+	// errs() << *this->value << "\n" << this->offsets.front()->to_string();
+	// errs() << this->offsets.back()->to_string();
 }
 
 void ATNode :: offsetValue(Offset* offset) {
