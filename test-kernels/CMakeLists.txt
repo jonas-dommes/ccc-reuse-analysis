@@ -17,4 +17,5 @@ endif()
 
 
 add_subdirectory(microkernels)
-# add_subdirectory(benchmarks)
+# add_subdirectory(benchmarks/kmeans)
+add_subdirectory(benchmarks/hotspot)
