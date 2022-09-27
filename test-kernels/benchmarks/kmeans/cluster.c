@@ -17,7 +17,7 @@
 /*                                                                           */
 /*2       Redistributions in binary form must reproduce the above copyright   */
 /*        notice, this list of conditions and the following disclaimer in the */
-/*        documentation and/or other materials provided with the distribution.*/ 
+/*        documentation and/or other materials provided with the distribution.*/
 /*                                                                            */
 /*3       Neither the name of Northwestern University nor the names of its    */
 /*        contributors may be used to endorse or promote products derived     */
@@ -74,6 +74,7 @@
 #include <omp.h>
 
 #include "kmeans.h"
+#include "kmeans_cuda.cuh"
 
 extern double wtime(void);
 float	min_rmse_ref = FLT_MAX;			/* reference min_rmse value */
@@ -81,7 +82,7 @@ float	min_rmse_ref = FLT_MAX;			/* reference min_rmse value */
 /*---< cluster() >-----------------------------------------------------------*/
 int cluster(int      npoints,				/* number of data points */
             int      nfeatures,				/* number of attributes for each point */
-            float  **features,			/* array: [npoints][nfeatures] */                  
+            float  **features,			/* array: [npoints][nfeatures] */
             int      min_nclusters,			/* range of min to max number of clusters */
 			int		 max_nclusters,
             float    threshold,				/* loop terminating factor */
@@ -91,8 +92,8 @@ int cluster(int      npoints,				/* number of data points */
 			int		 isRMSE,				/* calculate RMSE */
 			int		 nloops					/* number of iteration for each number of clusters */
 			)
-{    
-	int		nclusters;						/* number of clusters k */	
+{
+	int		nclusters;						/* number of clusters k */
 	int		index =0;						/* number of iteration to reach the best RMSE */
 	int		rmse;							/* RMSE for each clustering */
     int    *membership;						/* which cluster a data point belongs to */
@@ -126,8 +127,8 @@ int cluster(int      npoints,				/* number of data points */
 				free(*cluster_centres);
 			}
 			*cluster_centres = tmp_cluster_centres;
-	        
-					
+
+
 			/* find the number of clusters with the best RMSE */
 			if(isRMSE)
 			{
@@ -136,16 +137,16 @@ int cluster(int      npoints,				/* number of data points */
 							   npoints,
 							   tmp_cluster_centres,
 							   nclusters);
-				
+
 				if(rmse < min_rmse_ref){
 					min_rmse_ref = rmse;			//update reference min RMSE
 					*min_rmse = min_rmse_ref;		//update return min RMSE
 					*best_nclusters = nclusters;	//update optimum number of clusters
 					index = i;						//update number of iteration to reach best RMSE
 				}
-			}			
+			}
 		}
-		
+
 		deallocateMemory();							/* free device memory (@ kmeans_cuda.cu) */
 	}
 
@@ -153,4 +154,3 @@ int cluster(int      npoints,				/* number of data points */
 
     return index;
 }
-

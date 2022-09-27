@@ -5,17 +5,18 @@
 #include <cuda.h>
 
 #include "kmeans.h"
+#include "kmeans_cuda_kernel.cuh"
 
 // FIXME: Make this a runtime selectable variable!
 #define ASSUMED_NR_CLUSTERS 32
 
 #define SDATA( index)      CUT_BANK_CHECKER(sdata, index)
 
-// t_features has the layout dim0[points 0-m-1]dim1[ points 0-m-1]...
-texture<float, 1, cudaReadModeElementType> t_features;
-// t_features_flipped has the layout point0[dim 0-n-1]point1[dim 0-n-1]
-texture<float, 1, cudaReadModeElementType> t_features_flipped;
-texture<float, 1, cudaReadModeElementType> t_clusters;
+// // t_features has the layout dim0[points 0-m-1]dim1[ points 0-m-1]...
+// texture<float, 1, cudaReadModeElementType> t_features;
+// // t_features_flipped has the layout point0[dim 0-n-1]point1[dim 0-n-1]
+// texture<float, 1, cudaReadModeElementType> t_features_flipped;
+// texture<float, 1, cudaReadModeElementType> t_clusters;
 
 
 __constant__ float c_clusters[ASSUMED_NR_CLUSTERS*34];		/* constant memory for cluster centers */
@@ -23,9 +24,9 @@ __constant__ float c_clusters[ASSUMED_NR_CLUSTERS*34];		/* constant memory for c
 /* ----------------- invert_mapping() --------------------- */
 /* inverts data array from row-major to column-major.
 
-   [p0,dim0][p0,dim1][p0,dim2] ... 
-   [p1,dim0][p1,dim1][p1,dim2] ... 
-   [p2,dim0][p2,dim1][p2,dim2] ... 
+   [p0,dim0][p0,dim1][p0,dim2] ...
+   [p1,dim0][p1,dim1][p1,dim2] ...
+   [p2,dim0][p2,dim1][p2,dim2] ...
 										to
    [dim0,p0][dim0,p1][dim0,p2] ...
    [dim1,p0][dim1,p1][dim1,p2] ...
@@ -62,14 +63,14 @@ kmeansPoint(float  *features,			/* in: [npoints*nfeatures] */
             int    *membership,
 			float  *clusters,
 			float  *block_clusters,
-			int    *block_deltas) 
+			int    *block_deltas)
 {
 
 	// block ID
 	const unsigned int block_id = gridDim.x*blockIdx.y+blockIdx.x;
-	// point/thread ID  
+	// point/thread ID
 	const unsigned int point_id = block_id*blockDim.x*blockDim.y + threadIdx.x;
-  
+
 	int  index = -1;
 
 	if (point_id < npoints)
@@ -77,20 +78,20 @@ kmeansPoint(float  *features,			/* in: [npoints*nfeatures] */
 		int i, j;
 		float min_dist = FLT_MAX;
 		float dist;													/* distance square between a point to cluster center */
-		
+
 		/* find the cluster center id with min distance to pt */
 		for (i=0; i<nclusters; i++) {
-			int cluster_base_index = i*nfeatures;					/* base index of cluster centers for inverted array */			
+			int cluster_base_index = i*nfeatures;					/* base index of cluster centers for inverted array */
 			float ans=0.0;												/* Euclidean distance sqaure */
 
 			for (j=0; j < nfeatures; j++)
-			{					
+			{
 				int addr = point_id + j*npoints;					/* appropriate index of data point */
 				float diff = (tex1Dfetch(t_features,addr) -
 							  c_clusters[cluster_base_index + j]);	/* distance between a data point to cluster centers */
 				ans += diff*diff;									/* sum of squares */
 			}
-			dist = ans;		
+			dist = ans;
 
 			/* see if distance is smaller than previous ones:
 			if so, change minimum distance and save index of cluster center */
@@ -100,10 +101,10 @@ kmeansPoint(float  *features,			/* in: [npoints*nfeatures] */
 			}
 		}
 	}
-	
+
 
 #ifdef GPU_DELTA_REDUCTION
-    // count how many points are now closer to a different cluster center	
+    // count how many points are now closer to a different cluster center
 	__shared__ int deltas[THREADS_PER_BLOCK];
 	if(threadIdx.x < THREADS_PER_BLOCK) {
 		deltas[threadIdx.x] = 0;
@@ -140,14 +141,14 @@ kmeansPoint(float  *features,			/* in: [npoints*nfeatures] */
 	if(threadIdx.x == 0) {
 		block_deltas[blockIdx.y * gridDim.x + blockIdx.x] = deltas[0];
 		//printf("original id: %d, modified: %d\n", blockIdx.y*gridDim.x+blockIdx.x, blockIdx.x);
-		
+
 	}
 
 #endif
 
 
 #ifdef GPU_NEW_CENTER_REDUCTION
-	int center_id = threadIdx.x / nfeatures;    
+	int center_id = threadIdx.x / nfeatures;
 	int dim_id = threadIdx.x - nfeatures*center_id;
 
 	__shared__ int new_center_ids[THREADS_PER_BLOCK];
@@ -159,19 +160,19 @@ kmeansPoint(float  *features,			/* in: [npoints*nfeatures] */
 	determine which dimension calculte the sum for
 	mapping of threads is
 	center0[dim0,dim1,dim2,...]center1[dim0,dim1,dim2,...]...
-	***/ 	
+	***/
 
 	int new_base_index = (point_id - threadIdx.x)*nfeatures + dim_id;
 	float accumulator = 0.f;
 
 	if(threadIdx.x < nfeatures * nclusters) {
-		// accumulate over all the elements of this threadblock 
+		// accumulate over all the elements of this threadblock
 		for(int i = 0; i< (THREADS_PER_BLOCK); i++) {
 			float val = tex1Dfetch(t_features_flipped,new_base_index+i*nfeatures);
-			if(new_center_ids[i] == center_id) 
+			if(new_center_ids[i] == center_id)
 				accumulator += val;
 		}
-	
+
 		// now store the sum for this threadblock
 		/***
 		mapping to global array is

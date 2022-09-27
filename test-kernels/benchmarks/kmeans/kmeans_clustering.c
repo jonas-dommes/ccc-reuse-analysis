@@ -17,7 +17,7 @@
 /*                                                                           */
 /*2       Redistributions in binary form must reproduce the above copyright   */
 /*        notice, this list of conditions and the following disclaimer in the */
-/*        documentation and/or other materials provided with the distribution.*/ 
+/*        documentation and/or other materials provided with the distribution.*/
 /*                                                                            */
 /*3       Neither the name of Northwestern University nor the names of its    */
 /*        contributors may be used to endorse or promote products derived     */
@@ -67,6 +67,7 @@
 #include <math.h>
 #include <omp.h>
 
+#include "kmeans_cuda.cuh"
 #include "kmeans.h"
 
 #define RANDOM_MAX 2147483647
@@ -80,7 +81,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
                           int     nclusters,
                           float   threshold,
                           int    *membership) /* out: [npoints] */
-{    
+{
     int      i, j, n = 0;				/* counters */
 	int		 loop=0, temp;
     int     *new_centers_len;	/* [nclusters]: no. of points in each cluster */
@@ -116,8 +117,8 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 
     /* randomly pick cluster centers */
     for (i=0; i<nclusters && initial_points >= 0; i++) {
-		//n = (int)rand() % initial_points;		
-		
+		//n = (int)rand() % initial_points;
+
         for (j=0; j<nfeatures; j++)
             clusters[i][j] = feature[initial[n]][j];	// remapped
 
@@ -165,7 +166,7 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 				new_centers[i][j] = 0.0;	/* set back to 0 */
 			}
 			new_centers_len[i] = 0;			/* set back to 0 */
-		}	 
+		}
 		c++;
     } while ((delta > threshold) && (loop++ < 500));	/* makes sure loop terminates */
 	printf("iterated %d times\n", c);
@@ -175,4 +176,3 @@ float** kmeans_clustering(float **feature,    /* in: [npoints][nfeatures] */
 
     return clusters;
 }
-
