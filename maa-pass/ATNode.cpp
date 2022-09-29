@@ -66,6 +66,15 @@ void ATNode :: insertChildren(Instruction* I) {
 		return;
 	}
 
+	if (isa<SelectInst>(I)) {
+		errs() << "\tAdding Children for select\n";
+		errs() << "\tOp1" << ": " << *I->getOperand(1) << "\n";
+		errs() << "\tOp2" << ": " << *I->getOperand(2) << "\n";
+		this->children.push_back(new ATNode(I->getOperand(1), this->instr_stats, this));
+		this->children.push_back(new ATNode(I->getOperand(2), this->instr_stats, this));
+		return;
+	}
+
 	// // Print Operands
 	// int i = 0;
 	// for (Use& op : I->operands()) {
@@ -195,6 +204,10 @@ void ATNode :: set_instr_type(Instruction* I) {
 			this->instr_type = instr_t::GEP;
 			break;
 		}
+		case Instruction::Select: {
+			this->instr_type = instr_t::SEL;
+			break;
+		}
 		case Instruction::Trunc:
 		case Instruction::FPToUI:
 		case Instruction::FPToSI:
@@ -209,6 +222,11 @@ void ATNode :: set_instr_type(Instruction* I) {
 		}
 		default: {
 			errs() << "[set_instr_type()] Reached default case with" << *I << "\n";
+			// Print operands
+			int i = 0;
+			for (Use& op : I->operands()) {
+				errs() << "Op[" << i << "]: " << *op << "\n";
+			}
 			break;
 		}
 	}
@@ -216,9 +234,9 @@ void ATNode :: set_instr_type(Instruction* I) {
 
 void ATNode :: calcOffset() {
 
-	this->offsets.push_back(new Offset(0, 1));
+	this->offsets.push_back(new Offset(0, 0));
 	this->offsets.push_back(new Offset(1, 1));
-	this->offsets.push_back(new Offset(32, 1));
+	this->offsets.push_back(new Offset(32, 8));
 
 	if (this->instr_type == instr_t::NONE) {
 
@@ -316,13 +334,16 @@ void ATNode :: offsetInstr(Offset* out, Offset* a, Offset* b) {
 			break;
 		}
 		case instr_t::PHI: {
-			// call once with a, once with b
 			out->op_phi(*a, *b);
 			break;
 		}
 		// Pass up from only child:
 		case instr_t::GEP: {
 			out->op_pass_up(*b);
+			break;
+		}
+		case instr_t::SEL: {
+			out->op_sel(*a, *b);
 			break;
 		}
 		case instr_t::EXT:
@@ -438,6 +459,14 @@ std::string ATNode :: access_pattern_instr() {
 			str.append("]");
 			break;
 		}
+		case instr_t::SEL: {
+			str.append("SEL{");
+			str.append(this->children[0]->access_pattern_to_string());
+			str.append(",");
+			str.append(this->children[1]->access_pattern_to_string());
+			str.append("}");
+			break;
+		}
 		case instr_t::EXT:
 		case instr_t::LOAD:
 		case instr_t::CALL: {
@@ -498,6 +527,7 @@ bool ATNode :: isBinary() {
 		}
 		case instr_t::PHI:
 		case instr_t::GEP:
+		case instr_t::SEL:
 		case instr_t::EXT:
 		case instr_t::LOAD:
 		case instr_t::CALL:

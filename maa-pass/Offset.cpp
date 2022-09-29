@@ -201,6 +201,14 @@ void Offset :: op_phi(Offset a, Offset b) {
 	}
 }
 
+void Offset :: op_sel(Offset a, Offset b) {
+
+	for (int i = 0; i < 3; i++) {
+		this->TidOffset[i] = a.TidOffset[i] > b.TidOffset[i] ? a.TidOffset[i] : b.TidOffset[i];
+		this->BidOffset[i] = a.BidOffset[i] > b.BidOffset[i] ? a.BidOffset[i] : b.BidOffset[i];
+	}
+}
+
 void Offset :: op_pass_up(Offset a) {
 
 	for (int i = 0; i < 3; i++) {
@@ -297,7 +305,7 @@ std::string Offset :: to_string() {
 
 std::string Offset :: to_string_tid() {
 
-	std::string str = "Id: ";
+	std::string str = "Tid: ";
 	str.append(std::to_string(this->tid));
 	str.append("\tTidOffset[");
 	for (int& offset : this->TidOffset) {
@@ -313,7 +321,7 @@ std::string Offset :: to_string_tid() {
 
 std::string Offset :: to_string_bid() {
 
-	std::string str = "Id: ";
+	std::string str = "Bid: ";
 	str.append(std::to_string(this->bid));
 	str.append("\tBidOffset[");
 	for (int& offset : this->BidOffset) {

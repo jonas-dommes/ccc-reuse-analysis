@@ -36,6 +36,7 @@ public:
 	int addr_space = -1;
 	int alignment = 0;
 	std::string access_pattern = "";
+	float predicted_ce = 0.0;
 
 private:
 
@@ -50,6 +51,7 @@ public:
 
 private:
 	void analyseOffset();
+	void predictCE();
 	void analyseAlias();
 	void setTypeSize(Instruction* I, FunctionStats* func_stats);
 	std::set<ATNode*> getNodesByInstr_t(instr_t instr_type);

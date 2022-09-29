@@ -40,6 +40,7 @@ public:
 	void op_xor(Offset a, Offset b);
 
 	void op_phi(Offset a, Offset b);
+	void op_sel(Offset a, Offset b);
 	void op_pass_up(Offset a);
 
 	// Handle Values
@@ -53,7 +54,7 @@ public:
 	// Utility
 	std::string to_string();
 	std::string to_string_tid();
-	std::string to_string_bid();	
+	std::string to_string_bid();
 };
 
 

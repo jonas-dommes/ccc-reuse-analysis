@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <set>
 #include <queue>
+#include <cstdlib>
 
 
 using namespace llvm;
@@ -46,6 +47,7 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
 	this->analyseAlias();
 	this->analyseOffset();
+	this->predictCE();
 	this->getLoopDepth(I, func_stats->LI);
 	this->isConditional(I);
 	this->analyseAccessPattern(I);
@@ -89,6 +91,7 @@ void InstrStats :: printInstrStats() {
 	for (Offset* offset : root->offsets) {
 		printf("\t\t%s\n", offset->to_string_bid().c_str());
 	}
+	printf("\t\tPredicted CE: %f\n", this->predicted_ce);
 }
 
 
@@ -102,6 +105,34 @@ void InstrStats :: analyseOffset() {
 
 	this->root->calcOffset();
 	this->root->offsetMulDep();
+}
+
+void InstrStats :: predictCE() {
+
+	std::vector<Offset*> offs_vec = this->root->offsets;
+	float tmp_ce = 1.0;
+
+	// Calculate diffs
+	int tid_diffs_1_0[3];
+	int bid_diffs_1_0[3];
+	int tid_diffs_32_0[3];
+	int bid_diffs_8_0[3];
+
+	// Scaling factor if CE is expected to be lower
+	float ce_scaling = 1.0;
+
+	for (int i = 0; i < 3; i++) {
+		tid_diffs_1_0[i] = offs_vec[1]->TidOffset[i] - offs_vec[0]->TidOffset[i];
+		bid_diffs_1_0[i] = offs_vec[1]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+		tid_diffs_32_0[i] = offs_vec[2]->TidOffset[i] - offs_vec[0]->TidOffset[i];
+		bid_diffs_8_0[i] = offs_vec[2]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+	}
+
+	int byte_per_warp = tid_diffs_1_0[0] * this->type_size * 32;
+	tmp_ce *= 128.0 / byte_per_warp;
+
+
+	this->predicted_ce = tmp_ce * ce_scaling;
 }
 
 

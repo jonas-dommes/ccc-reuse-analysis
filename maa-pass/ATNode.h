@@ -11,7 +11,7 @@
 using namespace llvm;
 
 enum class instr_t {
-	NONE = 0, ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, STORE, PHI, GEP, EXT
+	NONE = 0, ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, STORE, PHI, GEP, SEL, EXT
 };
 
 enum class val_t {
@@ -19,7 +19,7 @@ enum class val_t {
 };
 
 const std::string instr_t_str[] = {
-	"NONE", "ADD", "SUB", "MUL", "DIV", "REM", "SHL", "SHR", "OR", "AND", "XOR", "CALL", "LOAD", "STORE", "PHI", "GEP", "EXT", "UNDEF"
+	"NONE", "ADD", "SUB", "MUL", "DIV", "REM", "SHL", "SHR", "OR", "AND", "XOR", "CALL", "LOAD", "STORE", "PHI", "GEP", "SEL", "EXT", "UNDEF"
 };
 
 const std::string val_t_str[] {
