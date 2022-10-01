@@ -46,6 +46,7 @@ public:
 	void mul_by_dep(int* tid_dep, int* bid_dep);
 
 	// Utility
+	int abs_max(int a, int b);
 	std::string to_string();
 	std::string to_string_tid();
 	std::string to_string_bid();

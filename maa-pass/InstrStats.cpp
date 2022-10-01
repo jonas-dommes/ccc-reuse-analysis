@@ -13,7 +13,8 @@
 #include <algorithm>
 #include <set>
 #include <queue>
-#include <cstdlib>
+// #include <cstdlib>
+#include <limits>
 
 
 using namespace llvm;
@@ -88,9 +89,9 @@ void InstrStats :: printInstrStats() {
 	for (Offset* offset : root->offsets) {
 		printf("\t\t%s\n", offset->to_string_tid().c_str());
 	}
-	for (Offset* offset : root->offsets) {
-		printf("\t\t%s\n", offset->to_string_bid().c_str());
-	}
+	// for (Offset* offset : root->offsets) {
+	// 	printf("\t\t%s\n", offset->to_string_bid().c_str());
+	// }
 	printf("\t\tPredicted CE: %f\n", this->predicted_ce);
 
 	printf("\n");
@@ -112,29 +113,65 @@ void InstrStats :: analyseOffset() {
 void InstrStats :: predictCE() {
 
 	std::vector<Offset*> offs_vec = this->root->offsets;
+	std::set<int> warp_1_x;
+	std::set<int> rest_x;
 	float tmp_ce = 1.0;
-
-	// Calculate diffs
-	int tid_diffs_1_0[3];
-	int bid_diffs_1_0[3];
-	int tid_diffs_32_0[3];
-	int bid_diffs_8_0[3];
-
 	// Scaling factor if CE is expected to be lower
 	float ce_scaling = 1.0;
 
-	for (int i = 0; i < 3; i++) {
-		tid_diffs_1_0[i] = offs_vec[1]->TidOffset[i] - offs_vec[0]->TidOffset[i];
-		bid_diffs_1_0[i] = offs_vec[1]->BidOffset[i] - offs_vec[0]->BidOffset[i];
-		tid_diffs_32_0[i] = offs_vec[2]->TidOffset[i] - offs_vec[0]->TidOffset[i];
-		bid_diffs_8_0[i] = offs_vec[2]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+
+	// Get min Value
+	int min[3] = {INT_MAX, INT_MAX, INT_MAX};
+	for (int i = 0; i < 32; i++) {
+		for (int j = 0; j < 3; j++) {
+			min[j] = std::min(min[j], offs_vec[i]->TidOffset[j]);
+		}
 	}
 
-	int byte_per_warp = tid_diffs_1_0[0] * this->type_size * 32;
-	tmp_ce *= 128.0 / byte_per_warp;
+	// Add offset values to set
+	for (int i = 0; i < 32; i++) {
+		int normed_offset = offs_vec[i]->TidOffset[0] - min[0];
+		if (normed_offset < 32) {
+			warp_1_x.insert(normed_offset);
+		} else {
+			rest_x.insert(normed_offset);
+		}
+	}
 
+	tmp_ce = warp_1_x.size() / 32.;
 
 	this->predicted_ce = tmp_ce * ce_scaling;
+
+	errs() << "warp_1_x: ";
+	for (auto i : warp_1_x) {
+		errs() << i << ", ";
+	}
+	errs() << "\n";
+
+
+	// float tmp_ce = 1.0;
+	//
+	// // Calculate diffs
+	// int tid_diffs_1_0[3];
+	// int bid_diffs_1_0[3];
+	// int tid_diffs_32_0[3];
+	// int bid_diffs_8_0[3];
+	//
+	// // Scaling factor if CE is expected to be lower
+	// float ce_scaling = 1.0;
+	//
+	// for (int i = 0; i < 3; i++) {
+	// 	tid_diffs_1_0[i] = offs_vec[1]->TidOffset[i] - offs_vec[0]->TidOffset[i];
+	// 	bid_diffs_1_0[i] = offs_vec[1]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+	// 	tid_diffs_32_0[i] = offs_vec[2]->TidOffset[i] - offs_vec[0]->TidOffset[i];
+	// 	bid_diffs_8_0[i] = offs_vec[2]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+	// }
+	//
+	// int byte_per_warp = tid_diffs_1_0[0] * this->type_size * 32;
+	// tmp_ce *= 128.0 / byte_per_warp;
+	//
+	//
+	// this->predicted_ce = tmp_ce * ce_scaling;
 }
 
 
