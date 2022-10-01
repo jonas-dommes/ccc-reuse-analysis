@@ -92,6 +92,8 @@ void InstrStats :: printInstrStats() {
 		printf("\t\t%s\n", offset->to_string_bid().c_str());
 	}
 	printf("\t\tPredicted CE: %f\n", this->predicted_ce);
+
+	printf("\n");
 }
 
 
