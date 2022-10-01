@@ -243,9 +243,10 @@ void ATNode :: set_instr_type(Instruction* I) {
 
 void ATNode :: calcOffset() {
 
-	this->offsets.push_back(new Offset(0, 0));
-	this->offsets.push_back(new Offset(1, 1));
-	this->offsets.push_back(new Offset(32, 8));
+	for (int i = 0; i < 32; i++) {
+		int j = i / 8;
+		this->offsets.push_back(new Offset(i, j));
+	}
 
 	if (this->instr_type == instr_t::NONE) {
 
