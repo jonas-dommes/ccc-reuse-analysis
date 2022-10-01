@@ -82,7 +82,7 @@ void InstrStats :: printInstrStats() {
 	printf("\n");
 
 	printf("\t\tLoop Depth: %d\n", this->loop_depth);
-	printf("\t\tAddr: %p\t Alias: %s[%s](Size: %d Byte, Alignment: %d)\n", this->addr, this->data_alias.c_str(), (this->addr_space >= 0 && this->addr_space < 6) ? addr_space_str[this->addr_space].c_str() : "No Addr Space set", this->type_size, this->alignment);
+	printf("\t\tAddr: %p\t Alias: %s [%s] (Size: %d Byte, Alignment: %d)\n", this->addr, this->data_alias.c_str(), (this->addr_space >= 0 && this->addr_space < 6) ? addr_space_str[this->addr_space].c_str() : "No Addr Space set", this->type_size, this->alignment);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
 
 	for (Offset* offset : root->offsets) {
@@ -141,7 +141,7 @@ void InstrStats :: analyseAlias() {
 	// Get all ElementPtr Instructions
 	std::set<ATNode*> GEPs = this->getNodesByInstr_t(instr_t::GEP);
 
-	// Only one is expected to be found
+	// Only one is expected to be found without data dependence
 	if (GEPs.size() != 1) {
 		errs() << "[getDataAlias()] Found unexpected number of GEPs: " << GEPs.size() << "\n";
 		return;

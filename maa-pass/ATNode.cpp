@@ -31,6 +31,7 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 		errs() << "Added Argument with name " << this->name << "\n";
 
 
+
 	} else if (ConstantInt* const_int = dyn_cast<ConstantInt>(value) ){
 
 		this->value_type = val_t::CONST_INT;
@@ -43,8 +44,16 @@ ATNode :: ATNode (Value* value, InstrStats* instr_stats, ATNode* parent) : value
 		this->handleCallStr();
 		errs() << "Found CallInst with Functionname: " << this->name << "\n";
 
+	} else if (this->parent->instr_type == instr_t::GEP){
+
+			this->value_type = val_t::ARG;
+			this->name = value->getName();
+
+			errs() << "Added Pointer with name " << this->name << " as Argument\n";
+
 	} else {
 		errs() << "[ATNode()] Is none of the above: " << *value << "\n";
+
 	}
 
 	// Pass up dependence
@@ -337,7 +346,7 @@ void ATNode :: offsetInstr(Offset* out, Offset* a, Offset* b) {
 			out->op_phi(*a, *b);
 			break;
 		}
-		// Pass up from only child:
+		// Pass up from last child:
 		case instr_t::GEP: {
 			out->op_pass_up(*b);
 			break;
@@ -453,10 +462,16 @@ std::string ATNode :: access_pattern_instr() {
 			break;
 		}
 		case instr_t::GEP: {
-			str.append(this->children[0]->access_pattern_to_string());
-			str.append("[");
-			str.append(this->children[1]->access_pattern_to_string());
-			str.append("]");
+			for (ATNode* child : this->children) {
+				if (child->value_type == val_t::ARG) {
+					str.append(child->access_pattern_to_string());
+				} else {
+					str.append("[");
+					str.append(child->access_pattern_to_string());
+					str.append("]");
+				}
+			}
+
 			break;
 		}
 		case instr_t::SEL: {

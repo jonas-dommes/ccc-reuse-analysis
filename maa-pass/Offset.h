@@ -16,13 +16,7 @@ public:
 	int TidOffset[3];
 	int BidOffset[3];
 
-	// enum class instr_t {
-	// 	NONE = 0, ADD, SUB, MUL, DIV, REM, SHL, SHR, OR, AND, XOR, CALL, LOAD, STORE, PHI, GEP, EXT
-	// };
-	//
-	// enum class val_t {
-	// 	NONE = 0, ARG, CONST_INT, CUDA_REG, INC
-	// };
+
 
 // METHODS
 	Offset(int tid, int bid);
