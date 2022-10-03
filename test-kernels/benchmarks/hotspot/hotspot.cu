@@ -86,10 +86,10 @@ void readinput(float *vect, int grid_rows, int grid_cols, char *file){
 	 {
 		fgets(str, STR_SIZE, fp);
 		if (feof(fp))
-			fatal("not enough lines in file");
+			fatal((char*)"not enough lines in file");
 		//if ((sscanf(str, "%d%f", &index, &val) != 2) || (index != ((i-1)*(grid_cols-2)+j-1)))
 		if ((sscanf(str, "%f", &val) != 1))
-			fatal("invalid file format");
+			fatal((char*)"invalid file format");
 		vect[i*grid_cols+j] = val;
 	}
 
@@ -192,9 +192,9 @@ __global__ void calculate_temp(int iteration,  //number of iteration
                   IN_RANGE(tx, validXmin, validXmax) && \
                   IN_RANGE(ty, validYmin, validYmax) ) {
                   computed = true;
-                  temp_t[ty * BLOCK_SIZE + tx] =   temp_on_cuda[ty * BLOCK_SIZE + tx] + step_div_Cap * (power_on_cuda[ty * BLOCK_SIZE + tx] + 
-	       	         (temp_on_cuda[S * BLOCK_SIZE + tx] + temp_on_cuda[N * BLOCK_SIZE + tx] - 2.0*temp_on_cuda[ty * BLOCK_SIZE + tx]) * Ry_1 + 
-		             (temp_on_cuda[ty * BLOCK_SIZE + E] + temp_on_cuda[ty * BLOCK_SIZE + W] - 2.0*temp_on_cuda[ty * BLOCK_SIZE + tx]) * Rx_1 + 
+                  temp_t[ty * BLOCK_SIZE + tx] =   temp_on_cuda[ty * BLOCK_SIZE + tx] + step_div_Cap * (power_on_cuda[ty * BLOCK_SIZE + tx] +
+	       	         (temp_on_cuda[S * BLOCK_SIZE + tx] + temp_on_cuda[N * BLOCK_SIZE + tx] - 2.0*temp_on_cuda[ty * BLOCK_SIZE + tx]) * Ry_1 +
+		             (temp_on_cuda[ty * BLOCK_SIZE + E] + temp_on_cuda[ty * BLOCK_SIZE + W] - 2.0*temp_on_cuda[ty * BLOCK_SIZE + tx]) * Rx_1 +
 		             (amb_temp - temp_on_cuda[ty * BLOCK_SIZE + tx]) * Rz_1);
 
             }
@@ -210,7 +210,7 @@ __global__ void calculate_temp(int iteration,  //number of iteration
       // after the last iteration, only threads coordinated within the
       // small block perform the calculation and switch on ``computed''
       if (computed){
-          temp_dst[index]= temp_t[ty * BLOCK_SIZE + tx];		
+          temp_dst[index]= temp_t[ty * BLOCK_SIZE + tx];
       }
 }
 
@@ -309,7 +309,7 @@ void run(int argc, char** argv)
     MatrixOut = (float *) calloc (size, sizeof(float));
 
     if( !FilesavingPower || !FilesavingTemp || !MatrixOut)
-        fatal("unable to allocate memory");
+        fatal((char*)"unable to allocate memory");
 
     printf("pyramidHeight: %d\ngridSize: [%d, %d]\nborder:[%d, %d]\nblockGrid:[%d, %d]\ntargetBlock:[%d, %d]\n",\
 	pyramid_height, grid_cols, grid_rows, borderCols, borderRows, blockCols, blockRows, smallBlockCol, smallBlockRow);
