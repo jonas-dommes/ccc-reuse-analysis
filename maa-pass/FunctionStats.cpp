@@ -14,6 +14,7 @@
 #include <iostream>
 #include <string>
 #include <set>
+#include <cmath>
 
 
 using namespace llvm;
@@ -53,6 +54,7 @@ void FunctionStats :: analyseFunction(Function& F){
 
 	this->getDimension();
 	this->evaluateUniques();
+	this->predictReuse();
 
 	// Print results
 	this->printFunctionStats();
@@ -147,6 +149,30 @@ void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 	}
 }
 
+void FunctionStats :: predictReuse() {
+
+	int num_instr = 0;
+	float tmp_reuse = 1.0;
+	float tmp_ce = 1.0;
+	for (const auto& [instr, stats]: this->instr_map) {
+
+		if (stats.addr_space <= 1) {
+			num_instr++;
+			tmp_reuse *= stats.reuse_factor;
+			tmp_ce *= stats.predicted_ce;
+
+		}
+
+	}
+	this->reuse = pow (tmp_reuse, 1./num_instr);
+	this->avg_ce = pow (tmp_ce, 1./num_instr);
+
+	errs() << "Reuse:  " << this->reuse << "\n";
+	errs() << "Avg Ce: " << this->avg_ce << "\n";
+}
+
+
+
 
 void FunctionStats :: printFunctionStats() {
 
@@ -162,7 +188,12 @@ void FunctionStats :: printFunctionStats() {
 		printf("\t-------------------------------------------------\n");
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads ", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "stores", this->num_stores, this->unique_stores, this->s_num_tid, this->s_num_bid, this->s_num_bsd, this->s_num_gsd);
-		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n\n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
+		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
+		printf("\tAvg CE: %f\n", this->avg_ce);
+		printf("\tPredicted Reuse: %f\n", this->reuse);
+
+
+		printf("\n");
 
 
 

@@ -47,7 +47,8 @@ public:
 	unsigned int s_num_gsd = 0;
 
 	bool is_kernel = false;
-
+	float reuse = 0.0;
+	float avg_ce = 0.0;
 
 // METHODS
 public:
@@ -62,6 +63,7 @@ private:
 	// Evaluation
 	void evaluateUniques();
 	void evaluateInstruction(InstrStats instr_stats);
+	void predictReuse();
 
 	// Printing
 	void printFunctionStats();

@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <set>
 #include <queue>
-// #include <cstdlib>
+#include <cmath>
 #include <limits>
 
 
@@ -52,6 +52,7 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 	this->getLoopDepth(I, func_stats->LI);
 	this->isConditional(I);
 	this->analyseAccessPattern(I);
+	this->predictReuse();
 	errs() << "\n________________________________________________________\n";
 }
 
@@ -86,13 +87,14 @@ void InstrStats :: printInstrStats() {
 	printf("\t\tAddr: %p\t Alias: %s [%s] (Size: %d Byte, Alignment: %d)\n", this->addr, this->data_alias.c_str(), (this->addr_space >= 0 && this->addr_space < 6) ? addr_space_str[this->addr_space].c_str() : "No Addr Space set", this->type_size, this->alignment);
 	printf("\t\tAccess pattern: %s\n", this->access_pattern.c_str());
 
-	for (Offset* offset : root->offsets) {
-		printf("\t\t%s\n", offset->to_string_tid().c_str());
-	}
+	// for (Offset* offset : root->offsets) {
+	// 	printf("\t\t%s\n", offset->to_string_tid().c_str());
+	// }
 	// for (Offset* offset : root->offsets) {
 	// 	printf("\t\t%s\n", offset->to_string_bid().c_str());
 	// }
 	printf("\t\tPredicted CE: %f\n", this->predicted_ce);
+	printf("\t\tPredicted reuse: %f\n", this->reuse_factor);
 
 	printf("\n");
 }
@@ -142,36 +144,44 @@ void InstrStats :: predictCE() {
 
 	this->predicted_ce = tmp_ce * ce_scaling;
 
-	errs() << "warp_1_x: ";
-	for (auto i : warp_1_x) {
-		errs() << i << ", ";
-	}
-	errs() << "\n";
-
-
-	// float tmp_ce = 1.0;
-	//
-	// // Calculate diffs
-	// int tid_diffs_1_0[3];
-	// int bid_diffs_1_0[3];
-	// int tid_diffs_32_0[3];
-	// int bid_diffs_8_0[3];
-	//
-	// // Scaling factor if CE is expected to be lower
-	// float ce_scaling = 1.0;
-	//
-	// for (int i = 0; i < 3; i++) {
-	// 	tid_diffs_1_0[i] = offs_vec[1]->TidOffset[i] - offs_vec[0]->TidOffset[i];
-	// 	bid_diffs_1_0[i] = offs_vec[1]->BidOffset[i] - offs_vec[0]->BidOffset[i];
-	// 	tid_diffs_32_0[i] = offs_vec[2]->TidOffset[i] - offs_vec[0]->TidOffset[i];
-	// 	bid_diffs_8_0[i] = offs_vec[2]->BidOffset[i] - offs_vec[0]->BidOffset[i];
+	// errs() << "warp_1_x: ";
+	// for (auto i : warp_1_x) {
+	// 	errs() << i << ", ";
 	// }
-	//
-	// int byte_per_warp = tid_diffs_1_0[0] * this->type_size * 32;
-	// tmp_ce *= 128.0 / byte_per_warp;
-	//
-	//
-	// this->predicted_ce = tmp_ce * ce_scaling;
+	// errs() << "\n";
+}
+
+void InstrStats :: predictReuse() {
+
+	float addr_space;
+	float load_store;
+	float type_size;
+	float ce_loopdepth;
+
+	addr_space = (this->addr_space <= 1)? 1.0 : 0;
+
+	if (this->is_load) load_store = 1.0;
+	if (this->is_store) {
+		load_store = 0.5;
+		if (this->predicted_ce > 0.99) load_store = 0.01;
+	}
+
+	if (this->type_size < 4) type_size = 0.65 - (this->type_size / 10.0);
+	if (this->type_size == 4) type_size = 0.3;
+	if (this->type_size > 4) type_size = 0.01;
+
+	if (0.1 < this->predicted_ce && this->predicted_ce < 0.6) {
+		ce_loopdepth = 0.7;
+	} else {
+		ce_loopdepth = 0.2;
+	}
+	if (this->loop_depth > 0) {
+		ce_loopdepth *= (1 + this->loop_depth/10.);
+	}
+
+	float tmp_reuse = addr_space * load_store * type_size * ce_loopdepth;
+	int num_factors = 4;
+	this->reuse_factor = std::pow(tmp_reuse,  1.0/num_factors);
 }
 
 
