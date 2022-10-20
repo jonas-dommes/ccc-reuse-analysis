@@ -55,6 +55,7 @@ void FunctionStats :: analyseFunction(Function& F){
 	this->getDimension();
 	this->evaluateUniques();
 	this->predictReuse();
+	this->predictCE();
 
 	// Print results
 	this->printFunctionStats();
@@ -148,31 +149,76 @@ void FunctionStats :: evaluateInstruction(InstrStats instr_stats) {
 		}
 	}
 }
+void FunctionStats :: predictCE() {
+
+	float total_weight = 0.0;
+	float tmp_ce = 0.0;
+
+	for (const auto& [instr, stats]: this->instr_map) {
+
+		if (stats.addr_space <= 1) {
+
+			float tmp_weight = 1.0;
+			if (stats.loop_depth > 0) {
+				tmp_weight += 0.3 *  stats.loop_depth;
+			}
+
+			if (stats.is_conditional) {
+				tmp_weight -= 0.2;
+			}
+
+			tmp_ce += stats.predicted_ce * (1.0 + tmp_weight/2.0);
+			total_weight += 1.0 + tmp_weight;
+
+		}
+	}
+	this->avg_ce = tmp_ce / total_weight;
+	errs() << "Debug vals:\n";
+	errs() << "tmp_ce: " << tmp_ce << "\n";
+	errs() << "total_weight: " << total_weight << "\n";
+
+	errs() << "Avg Ce: " << this->avg_ce << "\n";
+}
 
 void FunctionStats :: predictReuse() {
 
 	int num_instr = 0;
 	float tmp_reuse = 1.0;
-	float tmp_ce = 1.0;
+
 	for (const auto& [instr, stats]: this->instr_map) {
 
 		if (stats.addr_space <= 1) {
 			num_instr++;
 			tmp_reuse *= stats.reuse_factor;
-			tmp_ce *= stats.predicted_ce;
-
 		}
-
 	}
-	this->reuse = pow (tmp_reuse, 1./num_instr);
-	this->avg_ce = pow (tmp_ce, 1./num_instr);
+	tmp_reuse = pow (tmp_reuse, 1./num_instr);
+
+	float tmp_unique = this->unique_total / (float) (this->num_loads + this->num_stores);
+	tmp_unique = 1 - 0.5 * tmp_unique;
+
+	errs() << "Debug vals:\n";
+	errs() << "tmp_reuse: " << tmp_reuse << "\n";
+	errs() << "tmp_unique: " << tmp_unique << "\n";
+	errs() << "this->factorGlobalMem(): " << this->factorGlobalMem() << "\n";
+
+	this->reuse = 0.7 * tmp_reuse + 0.1 * tmp_unique + 0.2 * this->factorGlobalMem();
 
 	errs() << "Reuse:  " << this->reuse << "\n";
-	errs() << "Avg Ce: " << this->avg_ce << "\n";
 }
 
 
+float FunctionStats :: factorGlobalMem() {
 
+	int num_globals = 0;
+	for (const auto& [instr, stats]: this->instr_map) {
+		if (stats.addr_space <= 1) {
+			num_globals++;
+		}
+	}
+	float ratio = num_globals / (float) (this->num_loads + this->num_stores);
+	return ratio * ratio;
+}
 
 void FunctionStats :: printFunctionStats() {
 

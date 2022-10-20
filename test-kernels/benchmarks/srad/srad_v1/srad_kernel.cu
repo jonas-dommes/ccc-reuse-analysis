@@ -43,6 +43,7 @@ __global__ void srad(	float d_lambda,
 	if(ei<d_Ne){															// make sure that only threads matching jobs run
 
 		// directional derivatives, ICOV, diffusion coefficent
+		//    %4 = load float, float* %arrayidx, align 4, !tbaa !12
 		d_Jc = d_I[ei];														// get value of the current element
 
 		// directional derivates (every element of IMAGE)(try to copy to shared memory or temp files)

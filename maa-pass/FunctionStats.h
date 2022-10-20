@@ -63,7 +63,9 @@ private:
 	// Evaluation
 	void evaluateUniques();
 	void evaluateInstruction(InstrStats instr_stats);
+	void predictCE();
 	void predictReuse();
+	float factorGlobalMem();
 
 	// Printing
 	void printFunctionStats();

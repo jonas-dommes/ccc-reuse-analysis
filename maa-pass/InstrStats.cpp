@@ -143,12 +143,6 @@ void InstrStats :: predictCE() {
 	tmp_ce = warp_1_x.size() / 32.;
 
 	this->predicted_ce = tmp_ce * ce_scaling;
-
-	// errs() << "warp_1_x: ";
-	// for (auto i : warp_1_x) {
-	// 	errs() << i << ", ";
-	// }
-	// errs() << "\n";
 }
 
 void InstrStats :: predictReuse() {
@@ -181,7 +175,7 @@ void InstrStats :: predictReuse() {
 
 	float tmp_reuse = addr_space * load_store * type_size * ce_loopdepth;
 	int num_factors = 4;
-	this->reuse_factor = std::pow(tmp_reuse,  1.0/num_factors);
+	this->reuse_factor = std::pow(tmp_reuse, 1.0/num_factors);
 }
 
 
