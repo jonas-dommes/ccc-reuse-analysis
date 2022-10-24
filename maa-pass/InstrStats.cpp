@@ -25,7 +25,7 @@ InstrStats :: InstrStats() {}
 void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 
 
-	errs() << "\n_____ Analyse Instr: " << *I << " _____\n";
+	// errs() << "\n_____ Analyse Instr: " << *I << " _____\n";
 
 	if (StoreInst* storeInst = dyn_cast<StoreInst>(I)) {
 
@@ -53,7 +53,7 @@ void InstrStats :: analyseInstr(Instruction* I, FunctionStats* func_stats) {
 	this->isConditional(I);
 	this->analyseAccessPattern(I);
 	this->predictReuse();
-	errs() << "\n________________________________________________________\n";
+	// errs() << "\n________________________________________________________\n";
 }
 
 
@@ -118,9 +118,9 @@ void InstrStats :: predictCE() {
 	std::set<int> warp_1_x;
 	std::set<int> rest_x;
 	float tmp_ce = 1.0;
-	// Scaling factor if CE is expected to be lower
-	float ce_scaling = 1.0;
 
+	// Scaling factor if access is conditional
+	float ce_scaling = this->is_conditional ? 0.9 : 1.0;
 
 	// Get min Value
 	int min[3] = {INT_MAX, INT_MAX, INT_MAX};
@@ -152,23 +152,29 @@ void InstrStats :: predictReuse() {
 	float type_size;
 	float ce_loopdepth;
 
+	// No reuse if not in global memory
 	addr_space = (this->addr_space <= 1)? 1.0 : 0;
 
+	// Scale coalesced stores
 	if (this->is_load) load_store = 1.0;
 	if (this->is_store) {
 		load_store = 0.5;
 		if (this->predicted_ce > 0.99) load_store = 0.01;
 	}
 
+	// Scale wider/narrower types
 	if (this->type_size < 4) type_size = 0.65 - (this->type_size / 10.0);
 	if (this->type_size == 4) type_size = 0.3;
 	if (this->type_size > 4) type_size = 0.01;
 
-	if (0.1 < this->predicted_ce && this->predicted_ce < 0.6) {
+	// Scale CE
+	if (0.2 < this->predicted_ce && this->predicted_ce < 0.6) {
 		ce_loopdepth = 0.7;
 	} else {
 		ce_loopdepth = 0.2;
 	}
+
+	// Adjust by loopdepth
 	if (this->loop_depth > 0) {
 		ce_loopdepth *= (1 + this->loop_depth/10.);
 	}

@@ -34,7 +34,7 @@ void FunctionStats :: analyseFunction(Function& F){
 		return;
 	}
 
-	errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
+	// errs() << "\n###################### Analysing " << this->function_name << " ######################\n\n";
 
 
 	for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
@@ -173,11 +173,6 @@ void FunctionStats :: predictCE() {
 		}
 	}
 	this->avg_ce = tmp_ce / total_weight;
-	errs() << "Debug vals:\n";
-	errs() << "tmp_ce: " << tmp_ce << "\n";
-	errs() << "total_weight: " << total_weight << "\n";
-
-	errs() << "Avg Ce: " << this->avg_ce << "\n";
 }
 
 void FunctionStats :: predictReuse() {
@@ -185,8 +180,8 @@ void FunctionStats :: predictReuse() {
 	int num_instr = 0;
 	float tmp_reuse = 1.0;
 
+	// Collect instruction level predictions
 	for (const auto& [instr, stats]: this->instr_map) {
-
 		if (stats.addr_space <= 1) {
 			num_instr++;
 			tmp_reuse *= stats.reuse_factor;
@@ -194,17 +189,12 @@ void FunctionStats :: predictReuse() {
 	}
 	tmp_reuse = pow (tmp_reuse, 1./num_instr);
 
+	// Calculate unique arrays ratio
 	float tmp_unique = this->unique_total / (float) (this->num_loads + this->num_stores);
 	tmp_unique = 1 - 0.5 * tmp_unique;
 
-	errs() << "Debug vals:\n";
-	errs() << "tmp_reuse: " << tmp_reuse << "\n";
-	errs() << "tmp_unique: " << tmp_unique << "\n";
-	errs() << "this->factorGlobalMem(): " << this->factorGlobalMem() << "\n";
-
+	// Weighted average of factors
 	this->reuse = 0.7 * tmp_reuse + 0.1 * tmp_unique + 0.2 * this->factorGlobalMem();
-
-	errs() << "Reuse:  " << this->reuse << "\n";
 }
 
 
@@ -235,7 +225,7 @@ void FunctionStats :: printFunctionStats() {
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads ", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "stores", this->num_stores, this->unique_stores, this->s_num_tid, this->s_num_bid, this->s_num_bsd, this->s_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
-		printf("\tAvg CE: %f\n", this->avg_ce);
+		printf("\Predicted CE: %f\n", this->avg_ce);
 		printf("\tPredicted Reuse: %f\n", this->reuse);
 
 
