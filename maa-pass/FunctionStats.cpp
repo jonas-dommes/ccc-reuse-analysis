@@ -225,7 +225,7 @@ void FunctionStats :: printFunctionStats() {
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "loads ", this->num_loads, this->unique_loads, this->l_num_tid, this->l_num_bid, this->l_num_bsd, this->l_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "stores", this->num_stores, this->unique_stores, this->s_num_tid, this->s_num_bid, this->s_num_bsd, this->s_num_gsd);
 		printf("\t%6s | %4d | %4d | %4d | %4d | %4d | %4d \n", "total ", this->num_loads + this->num_stores, this->unique_total, this->l_num_tid + this->s_num_tid, this->l_num_bid + this->s_num_bid, this->l_num_bsd + this->s_num_bsd, this->l_num_gsd + this->s_num_gsd);
-		printf("\Predicted CE: %f\n", this->avg_ce);
+		printf("\tPredicted CE: %f\n", this->avg_ce);
 		printf("\tPredicted Reuse: %f\n", this->reuse);
 
 
